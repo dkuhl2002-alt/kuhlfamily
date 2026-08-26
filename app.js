@@ -553,6 +553,8 @@ function buildProductDisplayName(product){
     if(generic) name=brandShort+" – "+generic;
     else if(quantity) name=brandShort+" "+quantity;
     else name=brandShort;
+  }
+
   if(brandShort && lowName!==lowBrand && !lowName.startsWith(lowBrand) && name.length<18 && generic && !generic.toLowerCase().includes(lowName)){
     name=name+" – "+generic;
   }
