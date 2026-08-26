@@ -635,3 +635,188 @@ dialog::backdrop{background:rgba(40,25,20,.38);backdrop-filter:blur(3px)}
     grid-template-columns:1fr 1fr auto;
   }
 }
+
+
+/* V8 – Kalender & Termine */
+.calendar-overview{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  margin:12px 0 10px;
+}
+.calendar-overview>div{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:11px 7px;
+  text-align:center;
+}
+.calendar-overview b{
+  display:block;
+  font-size:21px;
+}
+.calendar-overview span{
+  display:block;
+  color:var(--muted);
+  font-size:9px;
+  margin-top:3px;
+}
+.calendar-hint{
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.45;
+  margin:0 1px 18px;
+}
+.calendar-month{
+  font-size:12px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--accent);
+  margin:22px 2px 9px;
+}
+.event-card{
+  display:flex;
+  gap:13px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-left-width:5px;
+  border-radius:20px;
+  padding:14px;
+  margin:10px 0;
+  box-shadow:0 7px 22px rgba(80,50,40,.05);
+}
+.event-date-box{
+  width:54px;
+  min-width:54px;
+  height:62px;
+  border-radius:15px;
+  background:#f7efe8;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+.event-date-box strong{
+  font-size:23px;
+  line-height:1;
+}
+.event-date-box span{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+.event-main{
+  flex:1;
+  min-width:0;
+}
+.event-topline{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+}
+.event-topline h4{
+  margin:2px 0 0;
+  font-size:17px;
+  line-height:1.25;
+}
+.event-day-label{
+  color:var(--accent);
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+.event-person{
+  background:#f4ebe4;
+  border-radius:999px;
+  padding:5px 8px;
+  font-size:10px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.event-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:9px;
+}
+.event-meta span{
+  background:#f6f0ea;
+  border-radius:999px;
+  padding:4px 7px;
+  color:#75645b;
+  font-size:10px;
+  font-weight:700;
+}
+.event-location{
+  margin-top:9px;
+  color:#6d5d55;
+  font-size:12px;
+}
+.event-notes{
+  margin-top:9px;
+  padding:9px 10px;
+  background:#fbf6f1;
+  border-radius:12px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.4;
+}
+.event-actions{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin-top:11px;
+}
+.event-map{
+  text-decoration:none;
+  background:#eef3fb;
+  color:#315f9c;
+  border-radius:12px;
+  padding:8px 10px;
+  font-size:11px;
+  font-weight:800;
+}
+.event-delete{
+  width:34px;
+  height:34px;
+  border:0;
+  border-radius:11px;
+  background:#f7ebe5;
+  color:#9b4f42;
+  display:grid;
+  place-items:center;
+}
+.person-Dominic.event-card{border-left-color:var(--red)}
+.person-Sabrina.event-card{border-left-color:var(--pink)}
+.person-Malia.event-card{border-left-color:var(--purple)}
+.person-Familie.event-card{border-left-color:var(--blue)}
+
+@media(max-width:560px){
+  .calendar-overview{
+    grid-template-columns:repeat(2,1fr);
+  }
+  .event-card{
+    padding:12px;
+    gap:10px;
+  }
+  .event-date-box{
+    width:48px;
+    min-width:48px;
+    height:58px;
+  }
+  .event-date-box strong{
+    font-size:21px;
+  }
+  .event-topline{
+    display:block;
+  }
+  .event-person{
+    display:inline-block;
+    margin-top:6px;
+  }
+}
