@@ -148,6 +148,123 @@ const demo={
   ]
 };
 
+
+const householdTemplates={
+  "Flur":{
+    icon:"🚪",
+    tasks:[
+      {title:"Manuell saugen",recurrence:"Alle 2 Wochen",rhythm:"Alle 2 Wochen"},
+      {title:"Schuhbereich aufräumen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Spiegel reinigen",recurrence:"Alle 2 Wochen",rhythm:"Alle 2 Wochen"},
+      {title:"Fußleisten reinigen",recurrence:"Monatlich",rhythm:"Monatlich"}
+    ]
+  },
+  "Kinderzimmer":{
+    icon:"🧸",
+    tasks:[
+      {title:"Aufräumen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Manuell saugen",recurrence:"Alle 2 Wochen",rhythm:"Alle 2 Wochen"},
+      {title:"Staub wischen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Oberflächen reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Bettwäsche wechseln",recurrence:"Alle 2 Wochen",rhythm:"Alle 2 Wochen"},
+      {title:"Spielzeug sortieren",recurrence:"Monatlich",rhythm:"Monatlich"}
+    ]
+  },
+  "Schlafzimmer":{
+    icon:"🛏️",
+    tasks:[
+      {title:"Manuell saugen",recurrence:"Alle 2 Wochen",rhythm:"Alle 2 Wochen"},
+      {title:"Staub wischen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Nachttische und Oberflächen reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Bettwäsche wechseln",recurrence:"Alle 2 Wochen",rhythm:"Alle 2 Wochen"},
+      {title:"Unter dem Bett saugen",recurrence:"Monatlich",rhythm:"Monatlich"}
+    ]
+  },
+  "Bad":{
+    icon:"🛁",
+    tasks:[
+      {title:"WC reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Waschbecken reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Dusche / Badewanne reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Spiegel reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Handtücher wechseln",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Armaturen entkalken",recurrence:"Monatlich",rhythm:"Monatlich"},
+      {title:"Abfluss reinigen",recurrence:"Monatlich",rhythm:"Monatlich"}
+    ]
+  },
+  "Gäste-WC":{
+    icon:"🚻",
+    tasks:[
+      {title:"WC reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Waschbecken reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Spiegel reinigen",recurrence:"Alle 2 Wochen",rhythm:"Alle 2 Wochen"},
+      {title:"Handtuch wechseln",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Oberflächen reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"}
+    ]
+  },
+  "Küche":{
+    icon:"🍳",
+    tasks:[
+      {title:"Arbeitsflächen gründlich reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Spüle reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Herd reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Kühlschrank kontrollieren",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Kühlschrank reinigen",recurrence:"Monatlich",rhythm:"Monatlich"},
+      {title:"Backofen reinigen",recurrence:"Monatlich",rhythm:"Monatlich"},
+      {title:"Küchenfronten reinigen",recurrence:"Monatlich",rhythm:"Monatlich"},
+      {title:"Dunstabzug reinigen",recurrence:"Monatlich",rhythm:"Monatlich"},
+      {title:"Mülleimer reinigen",recurrence:"Monatlich",rhythm:"Monatlich"}
+    ]
+  },
+  "Wohnzimmer":{
+    icon:"🛋️",
+    tasks:[
+      {title:"Manuell saugen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Sofa absaugen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Staub wischen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Oberflächen reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Unter Möbeln saugen",recurrence:"Monatlich",rhythm:"Monatlich"},
+      {title:"Fußleisten reinigen",recurrence:"Monatlich",rhythm:"Monatlich"}
+    ]
+  },
+  "Balkon":{
+    icon:"🌿",
+    tasks:[
+      {title:"Balkon fegen",recurrence:"Alle 2 Wochen",rhythm:"Alle 2 Wochen"},
+      {title:"Balkonmöbel reinigen",recurrence:"Monatlich",rhythm:"Monatlich"},
+      {title:"Geländer reinigen",recurrence:"Monatlich",rhythm:"Monatlich"},
+      {title:"Ablauf kontrollieren",recurrence:"Monatlich",rhythm:"Monatlich"},
+      {title:"Balkontür / Scheibe reinigen",recurrence:"Monatlich",rhythm:"Monatlich"}
+    ]
+  },
+  "Allgemein":{
+    icon:"🏠",
+    tasks:[
+      {title:"Wäsche waschen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Wäsche zusammenlegen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Handtücher waschen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Fenster putzen",recurrence:"Monatlich",rhythm:"Monatlich"},
+      {title:"Türen und Lichtschalter reinigen",recurrence:"Monatlich",rhythm:"Monatlich"},
+      {title:"Papier / Glas wegbringen",recurrence:"Alle 2 Wochen",rhythm:"Alle 2 Wochen"}
+    ]
+  },
+  "Charlie":{
+    icon:"🐈",
+    tasks:[
+      {title:"Katzenklo reinigen",recurrence:"Täglich",rhythm:"Täglich"},
+      {title:"Katzenstreu komplett wechseln",recurrence:"Alle 2 Wochen",rhythm:"Alle 2 Wochen"},
+      {title:"Futter auffüllen",recurrence:"Täglich",rhythm:"Täglich"},
+      {title:"Wasser wechseln",recurrence:"Täglich",rhythm:"Täglich"},
+      {title:"Futternäpfe reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Wassernapf / Trinkbrunnen reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Katzenhaare von Sofa / Decken entfernen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Kratzbaum absaugen / reinigen",recurrence:"Wöchentlich",rhythm:"Wöchentlich"},
+      {title:"Spielzeug kontrollieren",recurrence:"Monatlich",rhythm:"Monatlich"},
+      {title:"Katzenstreu vor dem Klo saugen",recurrence:"Nein",rhythm:"Nach Bedarf"}
+    ]
+  }
+};
+
 const state={user:null,data:structuredClone(demo)};
 const keys=["tasks","shopping","events","pinboard","expenses","recipes","products"];
 
@@ -255,7 +372,7 @@ function renderTaskDashboard(openT){
       return (a.title||"").localeCompare(b.title||"");
     })
     .slice(0,3)
-    .map(x=>item(isOverdue(x)?"⚠️":"✅",x.title,dueLabel(x)+" · "+(x.priority||"Normal")))
+    .map(x=>item(isOverdue(x)?"⚠️":"✅",x.title,dueLabel(x)+" · "+(x.priority||"Normal")+(x.area?" · "+x.area:"")))
     .join("");
 
   $("#taskPreview").innerHTML=stats+(preview||item("✓","Alles erledigt","Für heute ist Ruhe."));
@@ -430,6 +547,7 @@ function renderTasks(){
   $("#taskList").innerHTML=html;
 
   $$('[data-task-toggle]').forEach(b=>b.onclick=()=>toggleTask(b.dataset.taskToggle));
+  $$('[data-task-edit]').forEach(b=>b.onclick=()=>openTaskEditor(b.dataset.taskEdit));
   $$('[data-task-delete]').forEach(b=>b.onclick=()=>deleteTask(b.dataset.taskDelete));
 }
 
@@ -448,10 +566,14 @@ function taskRow(x){
         <small class="${isOverdue(x)?"overdue-text":""}">${esc(meta)}</small>
         <div class="task-tags">
           <span class="priority ${priorityClass}">${esc(x.priority||"Normal")}</span>
+          ${x.area?`<span class="task-area">${x.area==="Charlie"?"🐈":"📍"} ${esc(x.area)}</span>`:""}
           ${recurrenceShort(x.recurrence)?`<span class="recurrence">${esc(recurrenceShort(x.recurrence))}</span>`:""}
         </div>
       </div>
-      <button class="task-delete" data-task-delete="${x.id}" title="Aufgabe löschen">×</button>
+      <div class="task-row-actions">
+        <button class="task-edit" data-task-edit="${x.id}" title="Aufgabe bearbeiten">✎</button>
+        <button class="task-delete" data-task-delete="${x.id}" title="Aufgabe löschen">×</button>
+      </div>
     </div>`;
 }
 
@@ -480,6 +602,8 @@ async function toggleTask(taskId){
         await save("tasks",{
           id:id("t"),
           title:x.title,
+          area:x.area||"",
+          templateKey:x.templateKey||"",
           due:next,
           priority:x.priority||"Normal",
           recurrence:x.recurrence,
@@ -504,6 +628,154 @@ async function deleteTask(taskId){
   if(!confirm('Aufgabe "'+x.title+'" wirklich löschen?')) return;
   await remove("tasks",taskId);
   toast("Aufgabe gelöscht");
+}
+
+
+function taskSelectOptions(values,current){
+  return values.map(v=>`<option value="${esc(v)}" ${v===current?"selected":""}>${esc(v||"Kein Bereich")}</option>`).join("");
+}
+
+function taskFormHtml(task={}){
+  const areas=["","Flur","Kinderzimmer","Schlafzimmer","Bad","Gäste-WC","Küche","Wohnzimmer","Balkon","Allgemein","Charlie"];
+  return `
+    <input type="hidden" name="kind" value="task">
+    <input type="hidden" name="editId" value="${esc(task.id||"")}">
+    <input type="hidden" name="templateKey" value="${esc(task.templateKey||"")}">
+
+    <label>Aufgabe *
+      <input name="title" required value="${esc(task.title||"")}" placeholder="z. B. Bad reinigen">
+    </label>
+
+    <label>Bereich
+      <select name="area">${taskSelectOptions(areas,task.area||"")}</select>
+    </label>
+
+    <div class="form-two">
+      <label>Fällig / Start
+        <input name="due" type="date" value="${esc(task.due||today())}">
+      </label>
+      <label>Priorität
+        <select name="priority">${taskSelectOptions(["Normal","Wichtig","Dringend"],task.priority||"Normal")}</select>
+      </label>
+    </div>
+
+    <div class="form-two">
+      <label>Wiederholung
+        <select name="recurrence">${taskSelectOptions(["Nein","Täglich","Wöchentlich","Alle 2 Wochen","Monatlich"],task.recurrence||"Nein")}</select>
+      </label>
+      <label>Erinnerung
+        <select name="reminder">${taskSelectOptions(["Keine","Am Fälligkeitstag","1 Tag vorher","2 Tage vorher"],task.reminder||"Keine")}</select>
+      </label>
+    </div>
+
+    ${task.rhythm&&task.rhythm!==task.recurrence?`<div class="template-rhythm-note">Vorschlag: ${esc(task.rhythm)}</div>`:""}
+
+    <button class="primary wide">${task.id?"Änderungen speichern":"Aufgabe speichern"}</button>
+  `;
+}
+
+function openTaskEditor(taskOrId=""){
+  let task={};
+
+  if(typeof taskOrId==="string"&&taskOrId){
+    task=state.data.tasks.find(x=>x.id===taskOrId)||{};
+  }else if(taskOrId&&typeof taskOrId==="object"){
+    task={...taskOrId};
+  }
+
+  if($("#quick").open) $("#quick").close();
+  $("#editorTitle").textContent=task.id?"Aufgabe bearbeiten":"Aufgabe hinzufügen";
+  $("#editorForm").innerHTML=taskFormHtml(task);
+  $("#editor").showModal();
+}
+
+function ensureHouseholdExtras(){
+  if($("#householdDialog")) return;
+
+  document.body.insertAdjacentHTML("beforeend",`
+    <dialog id="householdDialog" class="household-dialog">
+      <div class="dialog-head">
+        <div>
+          <span class="kicker">HAUSHALT</span>
+          <h3 id="householdTitle">Aufgabenvorschläge</h3>
+        </div>
+        <button class="close" id="closeHousehold">×</button>
+      </div>
+
+      <div id="householdIntro" class="household-intro">
+        Raum oder Bereich auswählen. Danach einfach eine Aufgabe antippen.
+      </div>
+
+      <div id="householdContent"></div>
+    </dialog>
+  `);
+
+  $("#closeHousehold").onclick=()=>$("#householdDialog").close();
+}
+
+function openHouseholdSuggestions(){
+  ensureHouseholdExtras();
+  renderHouseholdAreas();
+  $("#householdDialog").showModal();
+}
+
+function renderHouseholdAreas(){
+  $("#householdTitle").textContent="Aufgabenvorschläge";
+  $("#householdIntro").textContent="Raum oder Bereich auswählen. Danach einfach eine Aufgabe antippen.";
+
+  $("#householdContent").innerHTML=`
+    <div class="household-area-grid">
+      ${Object.entries(householdTemplates).map(([area,data])=>`
+        <button class="household-area-card" data-household-area="${esc(area)}">
+          <span>${data.icon}</span>
+          <b>${esc(area)}</b>
+          <small>${data.tasks.length} Vorschläge</small>
+        </button>
+      `).join("")}
+    </div>
+  `;
+
+  $$("[data-household-area]").forEach(b=>b.onclick=()=>renderHouseholdTasks(b.dataset.householdArea));
+}
+
+function renderHouseholdTasks(area){
+  const data=householdTemplates[area];
+  if(!data) return;
+
+  $("#householdTitle").textContent=data.icon+" "+area;
+  $("#householdIntro").innerHTML=`<button id="householdBack" class="household-back">← Bereiche</button>`;
+
+  $("#householdContent").innerHTML=`
+    <div class="household-task-list">
+      ${data.tasks.map((task,index)=>`
+        <button class="household-task-card" data-template-index="${index}">
+          <div>
+            <b>${esc(task.title)}</b>
+            <small>${esc(task.rhythm||task.recurrence||"Nach Bedarf")}</small>
+          </div>
+          <span>＋</span>
+        </button>
+      `).join("")}
+    </div>
+  `;
+
+  $("#householdBack").onclick=renderHouseholdAreas;
+
+  $$("[data-template-index]").forEach(b=>b.onclick=()=>{
+    const template=data.tasks[Number(b.dataset.templateIndex)];
+    $("#householdDialog").close();
+
+    openTaskEditor({
+      title:template.title,
+      area,
+      due:today(),
+      priority:"Normal",
+      recurrence:template.recurrence||"Nein",
+      reminder:template.recurrence&&template.recurrence!=="Nein"?"Am Fälligkeitstag":"Keine",
+      rhythm:template.rhythm||"",
+      templateKey:area+"|"+template.title
+    });
+  });
 }
 
 let shoppingHistoryOpen=false;
@@ -1382,6 +1654,11 @@ function sel(label,name,a){
 $$('[data-add]').forEach(b=>b.onclick=()=>{
   const t=b.dataset.add;
 
+  if(t==="task"){
+    openTaskEditor();
+    return;
+  }
+
   if(t==="event"){
     openEventEditor();
     return;
@@ -1400,14 +1677,6 @@ $$('[data-add]').forEach(b=>b.onclick=()=>{
   $("#editorTitle").textContent=h;
   let x="";
 
-  if(t==="task"){
-    x=
-      f("Aufgabe","title","text",true)+
-      f("Fällig am","due","date")+
-      sel("Priorität","priority",["Normal","Wichtig","Dringend"])+
-      sel("Wiederholung","recurrence",["Nein","Täglich","Wöchentlich","Alle 2 Wochen","Monatlich"])+
-      sel("Erinnerung","reminder",["Keine","Am Fälligkeitstag","1 Tag vorher","2 Tage vorher"]);
-  }
   if(t==="shopping")x=f("Artikel","title","text",true);
   if(t==="expense")x=f("Betrag","amount","number",true)+sel("Kategorie","category",["Lebensmittel","Drogerie","Freizeit","Auto","Kind","Wohnen","Sonstiges"])+f("Verwendungszweck optional","note");
   if(t==="pin")x='<label>Notiz<textarea name="text" required></textarea></label>';
@@ -1421,19 +1690,29 @@ $("#editorForm").onsubmit=e=>{
   const d=new FormData(e.target);
   const t=d.get("kind");
 
-  if(t==="task")save("tasks",{
-    id:id("t"),
-    title:d.get("title"),
-    due:d.get("due"),
-    priority:d.get("priority"),
-    recurrence:d.get("recurrence"),
-    reminder:d.get("reminder"),
-    done:false,
-    doneBy:null,
-    doneAt:null,
-    createdBy:state.user,
-    createdAt:new Date().toISOString()
-  });
+  if(t==="task"){
+    const editId=String(d.get("editId")||"");
+    const existing=editId?state.data.tasks.find(x=>x.id===editId):null;
+
+    save("tasks",{
+      ...(existing||{}),
+      id:existing?.id||id("t"),
+      title:String(d.get("title")||"").trim(),
+      area:String(d.get("area")||""),
+      templateKey:String(d.get("templateKey")||existing?.templateKey||""),
+      due:d.get("due"),
+      priority:d.get("priority"),
+      recurrence:d.get("recurrence"),
+      reminder:d.get("reminder"),
+      done:existing?.done||false,
+      doneBy:existing?.doneBy||null,
+      doneAt:existing?.doneAt||null,
+      createdBy:existing?.createdBy||state.user,
+      createdAt:existing?.createdAt||new Date().toISOString(),
+      updatedBy:state.user,
+      updatedAt:new Date().toISOString()
+    });
+  }
 
   if(t==="event"){
     const editId=String(d.get("editId")||"");
@@ -1493,6 +1772,10 @@ $("#editorForm").onsubmit=e=>{
 };
 
 ensureShoppingExtras();
+ensureHouseholdExtras();
+
+$("#householdSuggestions").onclick=openHouseholdSuggestions;
+
 load();
 render();
 
@@ -1502,5 +1785,5 @@ render();
 initFirebase();
 
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./sw.js?v=8").catch(()=>{});
+  navigator.serviceWorker.register("./sw.js?v=9").catch(()=>{});
 }
