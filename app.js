@@ -323,6 +323,37 @@ async function watch(){
 function item(icon,title,sub=""){
   return `<div class="item"><span>${icon}</span><div><b>${esc(title)}</b>${sub?`<small>${esc(sub)}</small>`:""}</div></div>`;
 }
+
+function dashboardItem(icon,title,sub="",target=""){
+  return `
+    <button class="item dashboard-link" type="button" ${target?`data-dashboard-target="${esc(target)}"`:""}>
+      <span>${icon}</span>
+      <div>
+        <b>${esc(title)}</b>
+        ${sub?`<small>${esc(sub)}</small>`:""}
+      </div>
+      ${target?`<span class="dashboard-arrow">›</span>`:""}
+    </button>
+  `;
+}
+
+function goToView(target){
+  const view=$("#"+target);
+  if(!view) return;
+
+  $$(".view").forEach(v=>v.classList.remove("active"));
+  view.classList.add("active");
+
+  $$("[data-nav]").forEach(x=>x.classList.toggle("active",x.dataset.nav===target));
+  scrollTo({top:0,behavior:"smooth"});
+}
+
+function bindDashboardLinks(){
+  $$("[data-dashboard-target]").forEach(b=>{
+    b.onclick=()=>goToView(b.dataset.dashboardTarget);
+  });
+}
+
 function toast(t){
   const x=$("#toast");
   x.textContent=t;
@@ -344,12 +375,7 @@ $("#changeUser").onclick=()=>{
   $("#gate").classList.remove("hidden");
 };
 
-$$('[data-nav]').forEach(b=>b.onclick=()=>{
-  $$('.view').forEach(v=>v.classList.remove('active'));
-  $('#'+b.dataset.nav).classList.add('active');
-  $$('[data-nav]').forEach(x=>x.classList.toggle('active',x===b));
-  scrollTo({top:0,behavior:"smooth"});
-});
+$$('[data-nav]').forEach(b=>b.onclick=()=>goToView(b.dataset.nav));
 
 function renderTaskDashboard(openT){
   const overdue=openT.filter(isOverdue);
@@ -373,7 +399,7 @@ function renderTaskDashboard(openT){
       return (a.title||"").localeCompare(b.title||"");
     })
     .slice(0,3)
-    .map(x=>item(isOverdue(x)?"⚠️":"✅",x.title,dueLabel(x)+" · "+(x.priority||"Normal")+(x.area?" · "+x.area:"")))
+    .map(x=>dashboardItem(isOverdue(x)?"⚠️":"✅",x.title,dueLabel(x)+" · "+(x.priority||"Normal")+(x.area?" · "+x.area:""),"tasks"))
     .join("");
 
   $("#taskPreview").innerHTML=stats+(preview||item("✓","Alles erledigt","Für heute ist Ruhe."));
@@ -463,13 +489,14 @@ function render(){
 
   renderTaskDashboard(openT);
 
-  $("#shopPreview").innerHTML=openS.slice(0,4).map(x=>item("🛒",x.title)).join("")||item("🛒","Liste ist leer");
-  $("#eventPreview").innerHTML=up.slice(0,3).map(x=>item(
+  $("#shopPreview").innerHTML=openS.slice(0,4).map(x=>dashboardItem("🛒",x.title,"","shopping")).join("")||item("🛒","Liste ist leer");
+  $("#eventPreview").innerHTML=up.slice(0,3).map(x=>dashboardItem(
     x.category==="Geburtstag"?"🎂":"📅",
     x.title,
-    eventDateLabel(x.date)+" "+(x.time||"")+" · "+(x.person||"Familie")
+    eventDateLabel(x.date)+" "+(x.time||"")+" · "+(x.person||"Familie"),
+    "calendar"
   )).join("")||item("📅","Keine Termine");
-  $("#pinPreview").innerHTML=state.data.pinboard.slice(0,3).map(x=>item("📌",x.text)).join("")||item("📌","Keine Hinweise");
+  $("#pinPreview").innerHTML=state.data.pinboard.slice(0,3).map(x=>dashboardItem("📌",x.text,"","more")).join("")||item("📌","Keine Hinweise");
 
   const eventReminders=up
     .filter(x=>{
@@ -480,15 +507,16 @@ function render(){
       icon:x.category==="Geburtstag"?"🎂":"🔔",
       t:x.title,
       s:(x.reminder||"Erinnerung")+" · "+eventDateLabel(x.date)+(x.time?" "+x.time:""),
-      rank:3
+      rank:3,
+      target:"calendar"
     }));
 
   const important=[
-    ...openT.filter(isOverdue).map(x=>({icon:"⚠️",t:x.title,s:"Überfällig seit "+fmt(x.due),rank:1})),
-    ...openT.filter(x=>x.priority==="Dringend"&&!isOverdue(x)).map(x=>({icon:"🚨",t:x.title,s:x.due?dueLabel(x):"Dringend",rank:2})),
-    ...openT.filter(x=>x.priority==="Wichtig"&&isDueToday(x)).map(x=>({icon:"❗",t:x.title,s:"Heute · Wichtig",rank:3})),
+    ...openT.filter(isOverdue).map(x=>({icon:"⚠️",t:x.title,s:"Überfällig seit "+fmt(x.due),rank:1,target:"tasks"})),
+    ...openT.filter(x=>x.priority==="Dringend"&&!isOverdue(x)).map(x=>({icon:"🚨",t:x.title,s:x.due?dueLabel(x):"Dringend",rank:2,target:"tasks"})),
+    ...openT.filter(x=>x.priority==="Wichtig"&&isDueToday(x)).map(x=>({icon:"❗",t:x.title,s:"Heute · Wichtig",rank:3,target:"tasks"})),
     ...eventReminders,
-    ...up.filter(x=>x.date<=add(1)).map(x=>({icon:x.category==="Geburtstag"?"🎂":"📅",t:x.title,s:eventDateLabel(x.date)+" "+(x.time||""),rank:4}))
+    ...up.filter(x=>x.date<=add(1)).map(x=>({icon:x.category==="Geburtstag"?"🎂":"📅",t:x.title,s:eventDateLabel(x.date)+" "+(x.time||""),rank:4,target:"calendar"}))
   ].sort((a,b)=>a.rank-b.rank);
 
   const uniqueImportant=[];
@@ -501,7 +529,9 @@ function render(){
     }
   }
 
-  $("#important").innerHTML=uniqueImportant.slice(0,5).map(x=>item(x.icon,x.t,x.s)).join("")||item("✓","Nichts Dringendes","Alles im grünen Bereich.");
+  $("#important").innerHTML=uniqueImportant.slice(0,5).map(x=>dashboardItem(x.icon,x.t,x.s,x.target||"")).join("")||item("✓","Nichts Dringendes","Alles im grünen Bereich.");
+
+  bindDashboardLinks();
 
   renderTasks();
   renderShopping();
@@ -1959,5 +1989,5 @@ render();
 initFirebase();
 
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./sw.js?v=10").catch(()=>{});
+  navigator.serviceWorker.register("./sw.js?v=11").catch(()=>{});
 }
