@@ -656,6 +656,94 @@ function renderShopping(){
   $$('[data-history-repeat]').forEach(b=>b.onclick=()=>repeatShoppingItem(b.dataset.historyRepeat));
 }
 
+
+async function toggleShopping(itemId){
+  const x=state.data.shopping.find(t=>t.id===itemId);
+  if(!x) return;
+
+  // Bereits gekauft -> wieder zurück auf die offene Liste
+  if(x.done){
+    await save("shopping",{
+      ...x,
+      done:false,
+      doneBy:null,
+      doneAt:null
+    });
+    toast("Wieder auf der Einkaufsliste");
+    return;
+  }
+
+  const doneAt=new Date().toISOString();
+
+  await save("shopping",{
+    ...x,
+    done:true,
+    doneBy:state.user,
+    doneAt
+  });
+
+  // Bei gespeicherten Produkten die Kaufhäufigkeit erhöhen
+  if(x.productId){
+    const p=state.data.products.find(p=>p.id===x.productId);
+    if(p){
+      await save("products",{
+        ...p,
+        buyCount:Number(p.buyCount||0)+1,
+        lastBoughtAt:doneAt,
+        updatedBy:state.user,
+        updatedAt:doneAt
+      });
+    }
+  }
+
+  toast("Als gekauft markiert");
+}
+
+async function deleteShoppingItem(itemId){
+  const x=state.data.shopping.find(t=>t.id===itemId);
+  if(!x) return;
+
+  if(!confirm('"' + (x.title||"Artikel") + '" wirklich von der Einkaufsliste löschen?')) return;
+
+  await remove("shopping",itemId);
+  toast("Artikel gelöscht");
+}
+
+async function repeatShoppingItem(itemId){
+  const x=state.data.shopping.find(t=>t.id===itemId);
+  if(!x) return;
+
+  const duplicate=state.data.shopping.some(s=>
+    !s.done&&(
+      (x.productId&&s.productId===x.productId)||
+      (!x.productId&&String(s.title||"").toLowerCase()===String(x.title||"").toLowerCase())
+    )
+  );
+
+  if(duplicate){
+    toast("Steht schon auf der Liste");
+    return;
+  }
+
+  await save("shopping",{
+    id:id("s"),
+    title:x.title||"Artikel",
+    brand:x.brand||"",
+    details:x.details||"",
+    shop:x.shop||"",
+    image:x.image||"",
+    productId:x.productId||"",
+    barcode:x.barcode||"",
+    done:false,
+    doneBy:null,
+    doneAt:null,
+    addedBy:state.user,
+    createdAt:new Date().toISOString()
+  });
+
+  toast((x.title||"Artikel")+" wieder hinzugefügt");
+}
+
 function renderProducts(){
   const products=[...state.data.products]
     .sort((a,b)=>{
@@ -679,6 +767,7 @@ function renderProducts(){
       <div class="product-card-actions">
         <button class="primary" data-product-add="${p.id}">＋ Liste</button>
         <button class="pill" data-product-edit="${p.id}">Bearbeiten</button>
+        <button class="product-delete" data-product-delete="${p.id}" title="Produkt löschen" aria-label="Produkt löschen">🗑️</button>
       </div>
     </article>
   `).join("")||`
@@ -696,6 +785,21 @@ function renderProducts(){
     const p=state.data.products.find(x=>x.id===b.dataset.productEdit);
     if(p)openProductEditor(p);
   });
+
+  $$('[data-product-delete]').forEach(b=>b.onclick=()=>{
+    deleteProduct(b.dataset.productDelete);
+  });
+}
+
+
+async function deleteProduct(productId){
+  const p=state.data.products.find(x=>x.id===productId);
+  if(!p) return;
+
+  if(!confirm('Gespeichertes Produkt "'+(p.name||"Produkt")+'" wirklich löschen?')) return;
+
+  await remove("products",productId);
+  toast("Produkt gelöscht");
 }
 
 async function addProductToShopping(p){
@@ -1112,5 +1216,5 @@ render();
 initFirebase();
 
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./sw.js?v=6").catch(()=>{});
+  navigator.serviceWorker.register("./sw.js?v=7").catch(()=>{});
 }
