@@ -1,0 +1,2 @@
+export const firebaseConfig={apiKey:"HIER_EINTRAGEN",authDomain:"HIER_EINTRAGEN",projectId:"HIER_EINTRAGEN",storageBucket:"HIER_EINTRAGEN",messagingSenderId:"HIER_EINTRAGEN",appId:"HIER_EINTRAGEN"};
+export const vapidKey="HIER_OPTIONAL_VAPID_KEY_EINTRAGEN";

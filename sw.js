@@ -1,0 +1,1 @@
+const C="kuhlfamily-v1";const A=["./","./index.html","./styles.css","./app.js","./firebase-config.js","./assets/family.jpg"];self.addEventListener("install",e=>e.waitUntil(caches.open(C).then(c=>c.addAll(A)).catch(()=>{})));self.addEventListener("fetch",e=>{if(e.request.method==="GET")e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))})

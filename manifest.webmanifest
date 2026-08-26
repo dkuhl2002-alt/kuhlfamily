@@ -1,0 +1,8 @@
+{
+  "name": "KuhlFamily",
+  "short_name": "KuhlFamily",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fbf6ef",
+  "theme_color": "#cf7458"
+}

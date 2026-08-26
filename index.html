@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="de"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#cf7458"><title>KuhlFamily</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css">
+</head><body>
+<section id="gate" class="gate"><div class="gate-card"><div class="gate-photo"></div><div class="gate-body">
+<span class="kicker">WILLKOMMEN BEI</span><h1>Kuhl<span>Family</span></h1><p>Wer nutzt KuhlFamily gerade?</p>
+<div class="profiles"><button data-user="Dominic" class="dominic">Dominic</button><button data-user="Sabrina" class="sabrina">Sabrina</button><button data-user="Familie" class="family">Familie</button></div>
+</div></div></section>
+
+<div id="app" class="app hidden">
+<header class="hero"><img src="assets/family.jpg" alt="Familienfoto"><div class="shade"></div><div class="hero-text"><b>Kuhl<span>Family</span></b><div><small id="date"></small><h2 id="hello">Hallo</h2><p>Alles Wichtige für euren Familienalltag.</p></div></div></header>
+<main>
+<section id="start" class="view active">
+<div class="headline"><div><span class="kicker">DASHBOARD</span><h3>Heute im Blick</h3></div><button id="changeUser" class="pill">Benutzer wechseln</button></div>
+<div class="card important"><h4>⚡ Wichtig</h4><div id="important"></div></div>
+<div class="two"><div class="card"><h4>✅ Aufgaben</h4><div id="taskPreview"></div></div><div class="card"><h4>🛒 Einkauf</h4><div id="shopPreview"></div></div></div>
+<div class="card"><h4>📅 Nächste Termine</h4><div id="eventPreview"></div></div>
+<div class="two"><div class="card soft"><h4>🍝 Was essen wir heute?</h4><button id="meal" class="primary">Vorschlag</button><b id="mealResult"></b></div><div class="card moments"><h4>❤️ KuhlMoments</h4><p>Filmabend, Date Night & Zeit für euch.</p></div></div>
+<div class="card"><h4>📌 Familien-Pinnwand</h4><div id="pinPreview"></div></div>
+</section>
+<section id="tasks" class="view"><span class="kicker">HAUSHALT & TO-DOS</span><h3>Aufgaben</h3><div id="taskList"></div><button class="primary wide" data-add="task">+ Aufgabe</button></section>
+<section id="shopping" class="view"><span class="kicker">GEMEINSAM</span><h3>Einkaufsliste</h3><form id="shopForm" class="quickline"><input id="shopInput" placeholder="Artikel eingeben …"><button class="primary">+</button></form><div id="shopList"></div><h3 class="sub">Häufig gekauft</h3><div id="products" class="products"></div></section>
+<section id="calendar" class="view"><span class="kicker">TERMINE</span><h3>Kalender</h3><div class="legend"><i class="r"></i>Dominic <i class="p"></i>Sabrina <i class="v"></i>Malia <i class="b"></i>Familie</div><div id="eventList"></div><button class="primary wide" data-add="event">+ Termin</button></section>
+<section id="more" class="view"><span class="kicker">ALLES WEITERE</span><h3>Mehr</h3><div class="menu">
+<button>🍳<b>Kochideen</b><small>Rezepte & Zutaten</small></button><button>🌳<b>Aktivitäten</b><small>Familie & Vorschläge</small></button><button>💶<b>Finanzen</b><small>Monat & Jahr</small></button><button>🎂<b>Geburtstage</b><small>Geschenkideen</small></button><button>🎁<b>Wunschliste</b><small>Bilder, Preis, Link</small></button><button>✈️<b>Urlaub & Ausflüge</b><small>Packliste & Dokumente</small></button><button>🚗<b>Seat</b><small>TÜV & Termine</small></button><button>📌<b>Pinnwand</b><small>Kurze Hinweise</small></button><button>❤️<b>KuhlMoments</b><small>Eigener Bereich</small></button>
+</div></section>
+</main>
+<nav><button data-nav="start" class="active">🏠<small>Start</small></button><button data-nav="tasks">✅<small>Aufgaben</small></button><button data-nav="shopping">🛒<small>Einkauf</small></button><button data-nav="calendar">📅<small>Kalender</small></button><button data-nav="more">•••<small>Mehr</small></button></nav>
+<button id="fab" class="fab">+</button>
+</div>
+<dialog id="quick"><div class="dialog-head"><h3>Schnell hinzufügen</h3><button class="close">×</button></div><div class="quickmenu"><button data-add="task">✅ Aufgabe</button><button data-add="event">📅 Termin</button><button data-add="shopping">🛒 Einkauf</button><button data-add="expense">💶 Ausgabe</button><button data-add="pin">📌 Pinnwand</button></div></dialog>
+<dialog id="editor"><div class="dialog-head"><h3 id="editorTitle">Eintrag</h3><button class="close">×</button></div><form id="editorForm"></form></dialog>
+<div id="toast" class="toast"></div>
+<script type="module" src="app.js"></script></body></html>
