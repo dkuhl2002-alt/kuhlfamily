@@ -2,7 +2,7 @@
 <html lang="de"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#cf7458"><title>KuhlFamily</title>
-<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css?v=8">
+<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css?v=9">
 </head><body>
 <section id="gate" class="gate"><div class="gate-card"><div class="gate-photo"></div><div class="gate-body">
 <span class="kicker">WILLKOMMEN BEI</span><h1>Kuhl<span>Family</span></h1><p>Wer nutzt KuhlFamily gerade?</p>
@@ -20,7 +20,7 @@
 <div class="two"><div class="card soft"><h4>🍝 Was essen wir heute?</h4><button id="meal" class="primary">Vorschlag</button><b id="mealResult"></b></div><div class="card moments"><h4>❤️ KuhlMoments</h4><p>Filmabend, Date Night & Zeit für euch.</p></div></div>
 <div class="card"><h4>📌 Familien-Pinnwand</h4><div id="pinPreview"></div></div>
 </section>
-<section id="tasks" class="view"><span class="kicker">HAUSHALT & TO-DOS</span><h3>Aufgaben</h3><div id="taskList"></div><button class="primary wide" data-add="task">+ Aufgabe</button></section>
+<section id="tasks" class="view"><span class="kicker">HAUSHALT & TO-DOS</span><h3>Aufgaben</h3><div class="task-add-actions"><button class="primary" data-add="task">+ Eigene Aufgabe</button><button class="pill household-suggest-btn" id="householdSuggestions">🏠 Haushaltsaufgaben</button></div><div id="taskList"></div></section>
 <section id="shopping" class="view"><span class="kicker">GEMEINSAM</span><h3>Einkaufsliste</h3><form id="shopForm" class="quickline"><input id="shopInput" placeholder="Artikel eingeben …"><button class="primary">+</button></form><div id="shopList"></div><h3 class="sub">Häufig gekauft</h3><div id="products" class="products"></div></section>
 <section id="calendar" class="view"><span class="kicker">TERMINE</span><h3>Kalender</h3><div class="legend"><i class="r"></i>Dominic <i class="p"></i>Sabrina <i class="v"></i>Malia <i class="b"></i>Familie</div><div id="eventList"></div><button class="primary wide" data-add="event">+ Termin</button></section>
 <section id="more" class="view"><span class="kicker">ALLES WEITERE</span><h3>Mehr</h3><div class="menu">
@@ -33,4 +33,4 @@
 <dialog id="quick"><div class="dialog-head"><h3>Schnell hinzufügen</h3><button class="close">×</button></div><div class="quickmenu"><button data-add="task">✅ Aufgabe</button><button data-add="event">📅 Termin</button><button data-add="shopping">🛒 Einkauf</button><button data-add="expense">💶 Ausgabe</button><button data-add="pin">📌 Pinnwand</button></div></dialog>
 <dialog id="editor"><div class="dialog-head"><h3 id="editorTitle">Eintrag</h3><button class="close">×</button></div><form id="editorForm"></form></dialog>
 <div id="toast" class="toast"></div>
-<script type="module" src="app.js?v=8"></script></body></html>
+<script type="module" src="app.js?v=9"></script></body></html>
