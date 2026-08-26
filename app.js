@@ -525,6 +525,64 @@ function productMeta(p){
   return parts.join(" · ");
 }
 
+function cleanText(value){
+  return String(value||"").replace(/\s+/g," ").trim();
+}
+
+function firstBrand(value){
+  const text=cleanText(value);
+  if(!text) return "";
+  return text.split(",")[0].trim();
+}
+
+function buildProductDisplayName(product){
+  const brand=cleanText(product.brand||product.brands||"");
+  const brandShort=firstBrand(brand);
+  let name=cleanText(product.name||product.product_name_de||product.product_name||"");
+  let generic=cleanText(product.generic_name_de||product.generic_name||product.details||"");
+  let quantity=cleanText(product.quantity||"");
+
+  if(!name && generic) name=generic;
+  if(!name && quantity) name=quantity;
+  if(!name) name=brandShort || "Produkt";
+
+  const lowName=name.toLowerCase();
+  const lowBrand=brandShort.toLowerCase();
+
+  if(brandShort && lowName===lowBrand){
+    if(generic) name=brandShort+" – "+generic;
+    else if(quantity) name=brandShort+" "+quantity;
+    else name=brandShort;
+  if(brandShort && lowName!==lowBrand && !lowName.startsWith(lowBrand) && name.length<18 && generic && !generic.toLowerCase().includes(lowName)){
+    name=name+" – "+generic;
+  }
+
+  if(!generic && quantity) generic=quantity;
+  if(generic && quantity && !generic.toLowerCase().includes(quantity.toLowerCase())){
+    generic=generic+" · "+quantity;
+  }
+
+  return {
+    brand:brandShort || brand,
+    name:cleanText(name),
+    details:cleanText(generic)
+  };
+}
+
+function linkedProduct(item){
+  if(item.productId) return state.data.products.find(p=>p.id===item.productId) || null;
+  return null;
+}
+
+function thumbMarkup(item){
+  const product=linkedProduct(item);
+  const image=(item.image||product?.image||"").trim();
+  if(image){
+    return `<div class="shopping-thumb"><img src="${esc(image)}" alt="" loading="lazy"></div>`;
+  }
+  return `<div class="shopping-thumb emoji">${item.productId?"🛍️":"📝"}</div>`;
+}
+
 function renderShopping(){
   const open=[...state.data.shopping]
     .filter(x=>!x.done)
@@ -538,6 +596,7 @@ function renderShopping(){
   $("#shopList").innerHTML=open.map(x=>`
     <div class="row shopping-row">
       <button class="check" data-shop-toggle="${x.id}" aria-label="Als gekauft markieren"></button>
+      ${thumbMarkup(x)}
       <div class="grow">
         <b>${esc(x.title)}</b>
         ${x.brand?`<small>${esc(x.brand)}${x.details?" · "+esc(x.details):""}</small>`:""}
@@ -554,6 +613,7 @@ function renderShopping(){
     return `
       <div class="history-row">
         <div class="history-icon">✓</div>
+        ${thumbMarkup(x)}
         <div class="grow">
           <b>${esc(x.title)}</b>
           <small>${esc(x.doneBy||"")} ${when?"· "+esc(when):""}</small>
@@ -565,73 +625,6 @@ function renderShopping(){
   $$('[data-shop-toggle]').forEach(b=>b.onclick=()=>toggleShopping(b.dataset.shopToggle));
   $$('[data-shop-delete]').forEach(b=>b.onclick=()=>deleteShoppingItem(b.dataset.shopDelete));
   $$('[data-history-repeat]').forEach(b=>b.onclick=()=>repeatShoppingItem(b.dataset.historyRepeat));
-}
-
-async function toggleShopping(itemId){
-  const x=state.data.shopping.find(t=>t.id===itemId);
-  if(!x) return;
-
-  if(x.done){
-    await save("shopping",{...x,done:false,doneBy:null,doneAt:null});
-    toast("Wieder auf der Liste");
-    return;
-  }
-
-  const doneAt=new Date().toISOString();
-  await save("shopping",{...x,done:true,doneBy:state.user,doneAt});
-
-  if(x.productId){
-    const p=state.data.products.find(p=>p.id===x.productId);
-    if(p){
-      await save("products",{
-        ...p,
-        buyCount:Number(p.buyCount||0)+1,
-        lastBoughtAt:doneAt
-      });
-    }
-  }
-
-  toast("Gekauft · "+state.user);
-}
-
-async function deleteShoppingItem(itemId){
-  const x=state.data.shopping.find(t=>t.id===itemId);
-  if(!x) return;
-  if(!confirm('"'+x.title+'" von der Einkaufsliste löschen?')) return;
-  await remove("shopping",itemId);
-  toast("Von der Liste gelöscht");
-}
-
-async function repeatShoppingItem(itemId){
-  const x=state.data.shopping.find(t=>t.id===itemId);
-  if(!x) return;
-
-  const duplicate=state.data.shopping.some(s=>
-    !s.done&&(
-      (x.productId&&s.productId===x.productId)||
-      (!x.productId&&String(s.title).toLowerCase()===String(x.title).toLowerCase())
-    )
-  );
-
-  if(duplicate){
-    toast("Steht schon auf der Liste");
-    return;
-  }
-
-  await save("shopping",{
-    id:id("s"),
-    title:x.title,
-    brand:x.brand||"",
-    details:x.details||"",
-    shop:x.shop||"",
-    productId:x.productId||"",
-    barcode:x.barcode||"",
-    done:false,
-    addedBy:state.user,
-    createdAt:new Date().toISOString()
-  });
-
-  toast(x.title+" wieder hinzugefügt");
 }
 
 function renderProducts(){
@@ -677,24 +670,26 @@ function renderProducts(){
 }
 
 async function addProductToShopping(p){
+  const display=buildProductDisplayName(p);
   const duplicate=state.data.shopping.some(s=>
     !s.done&&(
       (p.id&&s.productId===p.id)||
-      String(s.title||"").toLowerCase()===String(p.name||"").toLowerCase()
+      String(s.title||"").toLowerCase()===String(display.name||"").toLowerCase()
     )
   );
 
   if(duplicate){
-    toast(p.name+" steht schon auf der Liste");
+    toast(display.name+" steht schon auf der Liste");
     return;
   }
 
   await save("shopping",{
     id:id("s"),
-    title:p.name||"Produkt",
-    brand:p.brand||"",
-    details:p.details||"",
+    title:display.name||"Produkt",
+    brand:display.brand||"",
+    details:display.details||"",
     shop:p.shop||"",
+    image:p.image||"",
     productId:p.id||"",
     barcode:p.barcode||"",
     done:false,
@@ -702,7 +697,7 @@ async function addProductToShopping(p){
     createdAt:new Date().toISOString()
   });
 
-  toast(p.name+" hinzugefügt");
+  toast(display.name+" hinzugefügt");
 }
 
 function openProductEditor(product={}){
@@ -740,7 +735,7 @@ async function saveProductFromForm(e){
   const byBarcode=barcode?state.data.products.find(p=>String(p.barcode||"")===barcode):null;
   const existing=state.data.products.find(p=>p.id===existingId)||byBarcode;
 
-  const product={
+  const rawProduct={
     id:existing?.id||existingId||(barcode?"prod-"+barcode:id("p")),
     name:String(f.get("name")||"").trim(),
     brand:String(f.get("brand")||"").trim(),
@@ -754,6 +749,9 @@ async function saveProductFromForm(e){
     updatedBy:state.user,
     updatedAt:new Date().toISOString()
   };
+
+  const display=buildProductDisplayName(rawProduct);
+  const product={...rawProduct,name:display.name,brand:display.brand,details:rawProduct.details||display.details};
 
   if(!product.name) return;
 
@@ -864,17 +862,24 @@ async function handleBarcode(code){
   let draft={barcode:code,name:"",brand:"",details:"",shop:"",price:0,image:"",buyCount:0};
 
   try{
-    const fields="code,product_name,brands,quantity,image_front_url";
+    const fields="code,product_name,product_name_de,generic_name,generic_name_de,brands,quantity,image_front_url,image_front_small_url";
     const response=await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}?fields=${fields}`);
     if(response.ok){
       const data=await response.json();
       if(data?.status===1&&data.product){
+        const normalized=buildProductDisplayName({
+          brand:data.product.brands||"",
+          name:data.product.product_name_de||data.product.product_name||"",
+          details:data.product.generic_name_de||data.product.generic_name||data.product.quantity||"",
+          quantity:data.product.quantity||""
+        });
+
         draft={
           ...draft,
-          name:data.product.product_name||"",
-          brand:data.product.brands||"",
-          details:data.product.quantity||"",
-          image:data.product.image_front_url||""
+          name:normalized.name||"",
+          brand:normalized.brand||"",
+          details:normalized.details||"",
+          image:data.product.image_front_url||data.product.image_front_small_url||""
         };
       }
     }
@@ -887,17 +892,19 @@ async function handleBarcode(code){
 }
 
 function renderBarcodeResult(p,saved){
-  const hasName=!!String(p.name||"").trim();
+  const display=buildProductDisplayName(p);
+  const product={...p,name:display.name,brand:display.brand,details:p.details||display.details};
+  const hasName=!!String(product.name||"").trim();
 
   $("#barcodeResult").innerHTML=`
     <div class="barcode-product-card">
-      <div class="barcode-product-image">${productImage(p)}</div>
+      <div class="barcode-product-image">${productImage(product)}</div>
       <div class="grow">
         <small>${saved?"Gespeichertes Produkt":hasName?"Produkt gefunden":"Noch unbekanntes Produkt"}</small>
-        <b>${esc(p.name||"Produktdaten ergänzen")}</b>
-        ${p.brand?`<span>${esc(p.brand)}</span>`:""}
-        ${p.details?`<span>${esc(p.details)}</span>`:""}
-        <span>EAN ${esc(p.barcode||"")}</span>
+        <b>${esc(product.name||"Produktdaten ergänzen")}</b>
+        ${product.brand?`<span>${esc(product.brand)}</span>`:""}
+        ${product.details?`<span>${esc(product.details)}</span>`:""}
+        <span>EAN ${esc(product.barcode||"")}</span>
       </div>
     </div>
     <div class="barcode-actions">
@@ -906,24 +913,24 @@ function renderBarcodeResult(p,saved){
     </div>
   `;
 
-  $("#barcodeEditProduct").onclick=()=>openProductEditor(p);
+  $("#barcodeEditProduct").onclick=()=>openProductEditor(product);
 
   if($("#barcodeAddList")){
     $("#barcodeAddList").onclick=async()=>{
-      let product=p;
+      let productToSave=product;
 
-      if(!product.id){
-        product={
-          ...product,
-          id:product.barcode?"prod-"+product.barcode:id("p"),
-          buyCount:Number(product.buyCount||0),
+      if(!productToSave.id){
+        productToSave={
+          ...productToSave,
+          id:productToSave.barcode?"prod-"+productToSave.barcode:id("p"),
+          buyCount:Number(productToSave.buyCount||0),
           updatedBy:state.user,
           updatedAt:new Date().toISOString()
         };
-        await save("products",product);
+        await save("products",productToSave);
       }
 
-      await addProductToShopping(product);
+      await addProductToShopping(productToSave);
       $("#barcodeDialog").close();
     };
   }
