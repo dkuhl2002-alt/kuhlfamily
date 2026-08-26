@@ -820,3 +820,146 @@ dialog::backdrop{background:rgba(40,25,20,.38);backdrop-filter:blur(3px)}
     margin-top:6px;
   }
 }
+
+
+/* V9 – Haushaltsaufgaben & Charlie */
+.task-add-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+  margin:10px 0 16px;
+}
+.task-add-actions button{
+  min-height:44px;
+}
+.household-suggest-btn{
+  background:#fff7f1;
+  border:1px solid #e7cdbc;
+  color:var(--dark);
+}
+.task-area{
+  display:inline-block;
+  padding:4px 7px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:800;
+  background:#eef1e8;
+  color:#5c6650;
+}
+.task-row-actions{
+  display:flex;
+  gap:6px;
+  flex:0 0 auto;
+}
+.task-edit{
+  border:0;
+  background:#f2eee8;
+  color:#76665e;
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  font-size:15px;
+  line-height:1;
+}
+.template-rhythm-note{
+  background:#fff5ec;
+  border:1px solid #ecd7c7;
+  border-radius:13px;
+  padding:10px 11px;
+  color:#7b5e50;
+  font-size:12px;
+}
+.household-dialog{
+  max-height:min(780px,calc(100vh - 22px));
+  overflow:auto;
+}
+.household-intro{
+  margin:8px 0 15px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.45;
+}
+.household-area-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.household-area-card{
+  border:1px solid var(--line);
+  background:#fff;
+  border-radius:18px;
+  padding:16px 13px;
+  text-align:left;
+}
+.household-area-card>span{
+  display:block;
+  font-size:28px;
+  margin-bottom:8px;
+}
+.household-area-card b,
+.household-area-card small{
+  display:block;
+}
+.household-area-card b{
+  font-size:15px;
+}
+.household-area-card small{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:10px;
+}
+.household-area-card[data-household-area="Charlie"]{
+  background:#fff8ee;
+  border-color:#ecd9bc;
+}
+.household-task-list{
+  display:grid;
+  gap:8px;
+}
+.household-task-card{
+  width:100%;
+  border:1px solid var(--line);
+  background:#fff;
+  border-radius:16px;
+  padding:13px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  text-align:left;
+}
+.household-task-card b,
+.household-task-card small{
+  display:block;
+}
+.household-task-card b{
+  font-size:14px;
+}
+.household-task-card small{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:10px;
+}
+.household-task-card>span{
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#f4e7df;
+  color:var(--accent);
+  font-weight:900;
+  flex:0 0 auto;
+}
+.household-back{
+  border:0;
+  background:none;
+  color:var(--accent);
+  font-weight:900;
+  padding:0;
+}
+@media(max-width:560px){
+  .task-add-actions{
+    grid-template-columns:1fr;
+  }
+}
