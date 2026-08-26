@@ -1,4 +1,4 @@
-const C="kuhlfamily-v3";
+const C="kuhlfamily-v4";
 const A=["./","./index.html","./styles.css","./app.js","./firebase-config.js","./assets/family.jpg"];
 
 self.addEventListener("install",e=>{
