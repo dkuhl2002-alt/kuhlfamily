@@ -145,7 +145,8 @@ const demo={
     {id:"p2",name:"Windeln",shop:"dm"},
     {id:"p3",name:"Wasser",shop:"REWE"},
     {id:"p4",name:"Feuchttücher",shop:"dm"}
-  ]
+  ],
+  taskTemplates:[]
 };
 
 
@@ -266,7 +267,7 @@ const householdTemplates={
 };
 
 const state={user:null,data:structuredClone(demo)};
-const keys=["tasks","shopping","events","pinboard","expenses","recipes","products"];
+const keys=["tasks","shopping","events","pinboard","expenses","recipes","products","taskTemplates"];
 
 function load(){
   if(!db){
@@ -631,6 +632,33 @@ async function deleteTask(taskId){
 }
 
 
+
+function householdAreas(){
+  return ["Flur","Kinderzimmer","Schlafzimmer","Bad","Gäste-WC","Küche","Wohnzimmer","Balkon","Allgemein","Charlie"];
+}
+
+function getHouseholdTasks(area){
+  const builtin=(householdTemplates[area]?.tasks||[]).map((t,index)=>({
+    ...t,
+    source:"builtin",
+    templateId:`builtin-${area}-${index}`
+  }));
+
+  const custom=(state.data.taskTemplates||[])
+    .filter(t=>t.area===area)
+    .map(t=>({
+      title:t.title,
+      recurrence:t.recurrence||"Nein",
+      rhythm:t.rhythm||t.recurrence||"Nach Bedarf",
+      priority:t.priority||"Normal",
+      reminder:t.reminder||"Keine",
+      source:"custom",
+      templateId:t.id
+    }));
+
+  return [...builtin,...custom];
+}
+
 function taskSelectOptions(values,current){
   return values.map(v=>`<option value="${esc(v)}" ${v===current?"selected":""}>${esc(v||"Kein Bereich")}</option>`).join("");
 }
@@ -669,6 +697,16 @@ function taskFormHtml(task={}){
     </div>
 
     ${task.rhythm&&task.rhythm!==task.recurrence?`<div class="template-rhythm-note">Vorschlag: ${esc(task.rhythm)}</div>`:""}
+
+    ${!task.id&&!task.templateKey?`
+      <label class="template-save-option">
+        <input type="checkbox" name="saveAsTemplate" value="1">
+        <span>
+          <b>Als Stammaufgabe speichern</b>
+          <small>Die Aufgabe erscheint danach dauerhaft bei den Haushaltsvorschlägen.</small>
+        </span>
+      </label>
+    `:""}
 
     <button class="primary wide">${task.id?"Änderungen speichern":"Aufgabe speichern"}</button>
   `;
@@ -725,13 +763,17 @@ function renderHouseholdAreas(){
 
   $("#householdContent").innerHTML=`
     <div class="household-area-grid">
-      ${Object.entries(householdTemplates).map(([area,data])=>`
-        <button class="household-area-card" data-household-area="${esc(area)}">
-          <span>${data.icon}</span>
-          <b>${esc(area)}</b>
-          <small>${data.tasks.length} Vorschläge</small>
-        </button>
-      `).join("")}
+      ${householdAreas().map(area=>{
+        const data=householdTemplates[area];
+        const count=getHouseholdTasks(area).length;
+        return `
+          <button class="household-area-card" data-household-area="${esc(area)}">
+            <span>${data.icon}</span>
+            <b>${esc(area)}</b>
+            <small>${count} Stammaufgaben</small>
+          </button>
+        `;
+      }).join("")}
     </div>
   `;
 
@@ -742,40 +784,149 @@ function renderHouseholdTasks(area){
   const data=householdTemplates[area];
   if(!data) return;
 
+  const tasks=getHouseholdTasks(area);
+
   $("#householdTitle").textContent=data.icon+" "+area;
   $("#householdIntro").innerHTML=`<button id="householdBack" class="household-back">← Bereiche</button>`;
 
   $("#householdContent").innerHTML=`
+    <div class="bulk-room-card">
+      <div>
+        <b>Alles in ${esc(area)} erledigen</b>
+        <small>Übernimmt alle ${tasks.length} Stammaufgaben auf einmal.</small>
+      </div>
+      <label>
+        Tag
+        <input id="bulkRoomDate" type="date" value="${addDaysToISO(today(),1)}">
+      </label>
+      <button id="bulkRoomAdd" class="primary wide">Alle ${tasks.length} Aufgaben übernehmen</button>
+    </div>
+
     <div class="household-task-list">
-      ${data.tasks.map((task,index)=>`
-        <button class="household-task-card" data-template-index="${index}">
-          <div>
-            <b>${esc(task.title)}</b>
-            <small>${esc(task.rhythm||task.recurrence||"Nach Bedarf")}</small>
-          </div>
-          <span>＋</span>
-        </button>
+      ${tasks.map((task,index)=>`
+        <div class="household-task-wrap">
+          <button class="household-task-card" data-template-index="${index}">
+            <div>
+              <b>${esc(task.title)}</b>
+              <small>${esc(task.rhythm||task.recurrence||"Nach Bedarf")}${task.source==="custom"?" · Eigene Stammaufgabe":""}</small>
+            </div>
+            <span>＋</span>
+          </button>
+          ${task.source==="custom"?`
+            <button class="household-template-delete" data-template-delete="${esc(task.templateId)}" title="Stammaufgabe löschen">🗑️</button>
+          `:""}
+        </div>
       `).join("")}
     </div>
   `;
 
   $("#householdBack").onclick=renderHouseholdAreas;
+  $("#bulkRoomAdd").onclick=()=>addAllHouseholdTasks(area,$("#bulkRoomDate").value);
 
   $$("[data-template-index]").forEach(b=>b.onclick=()=>{
-    const template=data.tasks[Number(b.dataset.templateIndex)];
+    const template=tasks[Number(b.dataset.templateIndex)];
     $("#householdDialog").close();
 
     openTaskEditor({
       title:template.title,
       area,
       due:today(),
-      priority:"Normal",
+      priority:template.priority||"Normal",
       recurrence:template.recurrence||"Nein",
-      reminder:template.recurrence&&template.recurrence!=="Nein"?"Am Fälligkeitstag":"Keine",
+      reminder:template.reminder||(template.recurrence&&template.recurrence!=="Nein"?"Am Fälligkeitstag":"Keine"),
       rhythm:template.rhythm||"",
-      templateKey:area+"|"+template.title
+      templateKey:template.templateId||area+"|"+template.title
     });
   });
+
+  $$("[data-template-delete]").forEach(b=>b.onclick=async()=>{
+    const template=state.data.taskTemplates.find(t=>t.id===b.dataset.templateDelete);
+    if(!template) return;
+    if(!confirm(`Stammaufgabe "${template.title}" wirklich löschen?`)) return;
+    await remove("taskTemplates",template.id);
+    toast("Stammaufgabe gelöscht");
+    setTimeout(()=>renderHouseholdTasks(area),150);
+  });
+}
+
+async function addAllHouseholdTasks(area,dueDate){
+  const tasks=getHouseholdTasks(area);
+  if(!tasks.length) return;
+
+  const due=dueDate||today();
+  let added=0;
+  let skipped=0;
+
+  for(const template of tasks){
+    const exists=state.data.tasks.some(t=>
+      !t.done&&
+      t.area===area&&
+      String(t.title||"").toLowerCase()===String(template.title||"").toLowerCase()&&
+      t.due===due
+    );
+
+    if(exists){
+      skipped++;
+      continue;
+    }
+
+    await save("tasks",{
+      id:id("t"),
+      title:template.title,
+      area,
+      templateKey:template.templateId||area+"|"+template.title,
+      due,
+      priority:template.priority||"Normal",
+      recurrence:template.recurrence||"Nein",
+      reminder:template.reminder||(template.recurrence&&template.recurrence!=="Nein"?"Am Fälligkeitstag":"Keine"),
+      done:false,
+      doneBy:null,
+      doneAt:null,
+      createdBy:state.user,
+      createdAt:new Date().toISOString()
+    });
+
+    added++;
+  }
+
+  $("#householdDialog").close();
+
+  if(skipped){
+    toast(`${added} Aufgaben übernommen · ${skipped} schon vorhanden`);
+  }else{
+    toast(`${added} Aufgaben für ${area} übernommen`);
+  }
+}
+
+async function quickAddTrashTask(){
+  const title="Müll runterbringen";
+  const exists=state.data.tasks.some(t=>
+    !t.done&&
+    String(t.title||"").toLowerCase()===title.toLowerCase()
+  );
+
+  if(exists){
+    toast("Müll runterbringen ist schon offen");
+    return;
+  }
+
+  await save("tasks",{
+    id:id("t"),
+    title,
+    area:"Allgemein",
+    templateKey:"quick-trash",
+    due:today(),
+    priority:"Normal",
+    recurrence:"Nein",
+    reminder:"Keine",
+    done:false,
+    doneBy:null,
+    doneAt:null,
+    createdBy:state.user,
+    createdAt:new Date().toISOString()
+  });
+
+  toast("🗑️ Müll runterbringen hinzugefügt");
 }
 
 let shoppingHistoryOpen=false;
@@ -1712,6 +1863,28 @@ $("#editorForm").onsubmit=e=>{
       updatedBy:state.user,
       updatedAt:new Date().toISOString()
     });
+
+    if(d.get("saveAsTemplate")==="1"){
+      const area=String(d.get("area")||"").trim()||"Allgemein";
+      const title=String(d.get("title")||"").trim();
+      const duplicate=(state.data.taskTemplates||[]).some(x=>
+        x.area===area&&String(x.title||"").toLowerCase()===title.toLowerCase()
+      );
+
+      if(!duplicate&&title){
+        save("taskTemplates",{
+          id:id("tt"),
+          title,
+          area,
+          priority:d.get("priority")||"Normal",
+          recurrence:d.get("recurrence")||"Nein",
+          reminder:d.get("reminder")||"Keine",
+          rhythm:d.get("recurrence")&&d.get("recurrence")!=="Nein"?d.get("recurrence"):"Nach Bedarf",
+          createdBy:state.user,
+          createdAt:new Date().toISOString()
+        });
+      }
+    }
   }
 
   if(t==="event"){
@@ -1775,6 +1948,7 @@ ensureShoppingExtras();
 ensureHouseholdExtras();
 
 $("#householdSuggestions").onclick=openHouseholdSuggestions;
+$("#quickTrashTask").onclick=quickAddTrashTask;
 
 load();
 render();
@@ -1785,5 +1959,5 @@ render();
 initFirebase();
 
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./sw.js?v=9").catch(()=>{});
+  navigator.serviceWorker.register("./sw.js?v=10").catch(()=>{});
 }
