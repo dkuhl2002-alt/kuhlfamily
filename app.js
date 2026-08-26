@@ -76,6 +76,26 @@ function nextDue(iso,recurrence){
   return "";
 }
 
+function addYearsToISO(iso,n){
+  const d=dateFromISO(iso||today());
+  const month=d.getMonth();
+  const day=d.getDate();
+  d.setDate(1);
+  d.setFullYear(d.getFullYear()+n);
+  d.setMonth(month);
+  const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+  d.setDate(Math.min(day,last));
+  return localDateISO(d);
+}
+
+function nextEventDate(iso,recurrence){
+  if(!iso) return "";
+  if(recurrence==="Wöchentlich") return addDaysToISO(iso,7);
+  if(recurrence==="Monatlich") return addMonthsToISO(iso,1);
+  if(recurrence==="Jährlich") return addYearsToISO(iso,1);
+  return "";
+}
+
 const add=n=>addDaysToISO(today(),n);
 const id=p=>p+"-"+crypto.randomUUID();
 const fmt=x=>x?new Intl.DateTimeFormat("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"}).format(dateFromISO(x)):"";
@@ -241,27 +261,129 @@ function renderTaskDashboard(openT){
   $("#taskPreview").innerHTML=stats+(preview||item("✓","Alles erledigt","Für heute ist Ruhe."));
 }
 
+
+function eventReminderDate(eventDate,reminder){
+  if(!eventDate||!reminder||reminder==="Keine") return "";
+  if(reminder==="Am selben Tag") return eventDate;
+  if(reminder==="1 Tag vorher") return addDaysToISO(eventDate,-1);
+  if(reminder==="1 Woche vorher") return addDaysToISO(eventDate,-7);
+  return "";
+}
+
+function eventRecurrenceLabel(value){
+  return value&&value!=="Nein"?"↻ "+value:"";
+}
+
+function eventOccurrenceKey(e){
+  return (e.date||"")+" "+(e.time||"")+" "+(e.title||"");
+}
+
+function upcomingEventOccurrences(days=370){
+  const from=today();
+  const until=addDaysToISO(from,days);
+  const out=[];
+
+  for(const source of state.data.events){
+    if(!source?.date) continue;
+
+    const recurrence=source.recurrence||"Nein";
+
+    if(recurrence==="Nein"){
+      if(source.date>=from&&source.date<=until){
+        out.push({...source,sourceId:source.id,occurrenceDate:source.date});
+      }
+      continue;
+    }
+
+    let occurrence=source.date;
+    let guard=0;
+
+    // Springt bei alten Serien bis zur ersten noch relevanten Wiederholung.
+    while(occurrence<from&&guard<1000){
+      const next=nextEventDate(occurrence,recurrence);
+      if(!next||next===occurrence) break;
+      occurrence=next;
+      guard++;
+    }
+
+    while(occurrence&&occurrence<=until&&guard<1200){
+      if(occurrence>=from){
+        out.push({...source,date:occurrence,sourceId:source.id,occurrenceDate:occurrence});
+      }
+      const next=nextEventDate(occurrence,recurrence);
+      if(!next||next===occurrence) break;
+      occurrence=next;
+      guard++;
+    }
+  }
+
+  return out.sort((a,b)=>eventOccurrenceKey(a).localeCompare(eventOccurrenceKey(b)));
+}
+
+function formatMonthTitle(iso){
+  return new Intl.DateTimeFormat("de-DE",{month:"long",year:"numeric"}).format(dateFromISO(iso));
+}
+
+function dayNumber(iso){
+  return String(dateFromISO(iso)?.getDate()||"").padStart(2,"0");
+}
+
+function monthShort(iso){
+  return new Intl.DateTimeFormat("de-DE",{month:"short"}).format(dateFromISO(iso)).replace(".","");
+}
+
+function eventDateLabel(iso){
+  if(iso===today()) return "Heute";
+  if(iso===addDaysToISO(today(),1)) return "Morgen";
+  return fmt(iso);
+}
+
 function render(){
   const openT=state.data.tasks.filter(x=>!x.done);
   const openS=state.data.shopping.filter(x=>!x.done);
-  const up=[...state.data.events]
-    .filter(x=>x.date>=today())
-    .sort((a,b)=>((a.date||"")+(a.time||"")).localeCompare((b.date||"")+(b.time||"")));
+  const up=upcomingEventOccurrences(370);
 
   renderTaskDashboard(openT);
 
   $("#shopPreview").innerHTML=openS.slice(0,4).map(x=>item("🛒",x.title)).join("")||item("🛒","Liste ist leer");
-  $("#eventPreview").innerHTML=up.slice(0,3).map(x=>item("📅",x.title,fmt(x.date)+" "+(x.time||"")+" · "+x.person)).join("")||item("📅","Keine Termine");
+  $("#eventPreview").innerHTML=up.slice(0,3).map(x=>item(
+    x.category==="Geburtstag"?"🎂":"📅",
+    x.title,
+    eventDateLabel(x.date)+" "+(x.time||"")+" · "+(x.person||"Familie")
+  )).join("")||item("📅","Keine Termine");
   $("#pinPreview").innerHTML=state.data.pinboard.slice(0,3).map(x=>item("📌",x.text)).join("")||item("📌","Keine Hinweise");
+
+  const eventReminders=up
+    .filter(x=>{
+      const reminderDate=eventReminderDate(x.date,x.reminder||"Keine");
+      return reminderDate&&reminderDate<=today()&&x.date>=today();
+    })
+    .map(x=>({
+      icon:x.category==="Geburtstag"?"🎂":"🔔",
+      t:x.title,
+      s:(x.reminder||"Erinnerung")+" · "+eventDateLabel(x.date)+(x.time?" "+x.time:""),
+      rank:3
+    }));
 
   const important=[
     ...openT.filter(isOverdue).map(x=>({icon:"⚠️",t:x.title,s:"Überfällig seit "+fmt(x.due),rank:1})),
     ...openT.filter(x=>x.priority==="Dringend"&&!isOverdue(x)).map(x=>({icon:"🚨",t:x.title,s:x.due?dueLabel(x):"Dringend",rank:2})),
     ...openT.filter(x=>x.priority==="Wichtig"&&isDueToday(x)).map(x=>({icon:"❗",t:x.title,s:"Heute · Wichtig",rank:3})),
-    ...up.filter(x=>x.date<=add(1)).map(x=>({icon:"📅",t:x.title,s:fmt(x.date)+" "+(x.time||""),rank:4}))
+    ...eventReminders,
+    ...up.filter(x=>x.date<=add(1)).map(x=>({icon:x.category==="Geburtstag"?"🎂":"📅",t:x.title,s:eventDateLabel(x.date)+" "+(x.time||""),rank:4}))
   ].sort((a,b)=>a.rank-b.rank);
 
-  $("#important").innerHTML=important.slice(0,5).map(x=>item(x.icon,x.t,x.s)).join("")||item("✓","Nichts Dringendes","Alles im grünen Bereich.");
+  const uniqueImportant=[];
+  const seenImportant=new Set();
+  for(const x of important){
+    const key=x.t+"|"+x.s;
+    if(!seenImportant.has(key)){
+      seenImportant.add(key);
+      uniqueImportant.push(x);
+    }
+  }
+
+  $("#important").innerHTML=uniqueImportant.slice(0,5).map(x=>item(x.icon,x.t,x.s)).join("")||item("✓","Nichts Dringendes","Alles im grünen Bereich.");
 
   renderTasks();
   renderShopping();
@@ -1069,17 +1191,168 @@ function renderBarcodeResult(p,saved){
   }
 }
 
+function ensureCalendarExtras(){
+  if($("#calendarOverview")) return;
+
+  const legend=$("#calendar .legend");
+  legend.insertAdjacentHTML("afterend",`
+    <div id="calendarOverview" class="calendar-overview"></div>
+    <div class="calendar-hint">Wiederkehrende Termine werden automatisch als nächste Vorkommen angezeigt. Bearbeiten oder Löschen wirkt auf die ganze Serie.</div>
+  `);
+}
+
 function renderEvents(){
-  $("#eventList").innerHTML=[...state.data.events]
-    .sort((a,b)=>((a.date||"")+(a.time||"")).localeCompare((b.date||"")+(b.time||"")))
-    .map(x=>`
-      <div class="row person-${x.person}">
-        <div class="grow">
-          <b>${esc(x.title)}</b>
-          <small>${fmt(x.date)} ${esc(x.time)} · ${esc(x.person)} · ${esc(x.category)}</small>
+  ensureCalendarExtras();
+
+  const occurrences=upcomingEventOccurrences(370);
+  const todayCount=occurrences.filter(x=>x.date===today()).length;
+  const weekCount=occurrences.filter(x=>x.date>=today()&&x.date<=addDaysToISO(today(),7)).length;
+  const birthdayCount=occurrences.filter(x=>x.category==="Geburtstag"&&x.date<=addDaysToISO(today(),30)).length;
+
+  $("#calendarOverview").innerHTML=`
+    <div><b>${todayCount}</b><span>heute</span></div>
+    <div><b>${weekCount}</b><span>7 Tage</span></div>
+    <div><b>${birthdayCount}</b><span>Geburtstage 30 T.</span></div>
+    <div><b>${occurrences.length}</b><span>kommende</span></div>
+  `;
+
+  if(!occurrences.length){
+    $("#eventList").innerHTML=`<div class="empty-state">📅 Noch keine kommenden Termine.</div>`;
+    return;
+  }
+
+  let html="";
+  let month="";
+
+  for(const x of occurrences.slice(0,100)){
+    const currentMonth=x.date.slice(0,7);
+    if(currentMonth!==month){
+      month=currentMonth;
+      html+=`<div class="calendar-month">${esc(formatMonthTitle(x.date))}</div>`;
+    }
+
+    const recurrence=eventRecurrenceLabel(x.recurrence||"Nein");
+    const reminder=x.reminder&&x.reminder!=="Keine"?"🔔 "+x.reminder:"";
+    const maps=x.location
+      ? `<a class="event-map" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(x.location)}">📍 Maps</a>`
+      : "";
+
+    html+=`
+      <article class="event-card person-${esc(x.person||"Familie")}">
+        <div class="event-date-box">
+          <strong>${dayNumber(x.date)}</strong>
+          <span>${esc(monthShort(x.date))}</span>
         </div>
-        ${x.location?`<a target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(x.location)}">Maps</a>`:''}
-      </div>`).join("");
+
+        <div class="event-main">
+          <div class="event-topline">
+            <div>
+              <small class="event-day-label">${esc(eventDateLabel(x.date))}</small>
+              <h4>${x.category==="Geburtstag"?"🎂 ":""}${esc(x.title)}</h4>
+            </div>
+            <span class="event-person">${esc(x.person||"Familie")}</span>
+          </div>
+
+          <div class="event-meta">
+            ${x.time?`<span>🕒 ${esc(x.time)} Uhr</span>`:""}
+            ${x.category?`<span>${esc(x.category)}</span>`:""}
+            ${recurrence?`<span>${esc(recurrence)}</span>`:""}
+            ${reminder?`<span>${esc(reminder)}</span>`:""}
+          </div>
+
+          ${x.location?`<div class="event-location">📍 ${esc(x.location)}</div>`:""}
+          ${x.notes?`<div class="event-notes">${esc(x.notes)}</div>`:""}
+
+          <div class="event-actions">
+            ${maps}
+            <button class="pill" data-event-edit="${esc(x.sourceId)}">Bearbeiten</button>
+            <button class="event-delete" data-event-delete="${esc(x.sourceId)}" title="Termin löschen">🗑️</button>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  $("#eventList").innerHTML=html;
+
+  $$('[data-event-edit]').forEach(b=>b.onclick=()=>openEventEditor(b.dataset.eventEdit));
+  $$('[data-event-delete]').forEach(b=>b.onclick=()=>deleteEvent(b.dataset.eventDelete));
+}
+
+function eventFormHtml(event={}){
+  const recurrence=event.recurrence||"Nein";
+  const reminder=event.reminder||"Keine";
+
+  const selectOptions=(values,current)=>values.map(v=>`<option ${v===current?"selected":""}>${v}</option>`).join("");
+
+  return `
+    <input type="hidden" name="kind" value="event">
+    <input type="hidden" name="editId" value="${esc(event.id||"")}">
+
+    <label>Termin *
+      <input name="title" required value="${esc(event.title||"")}" placeholder="z. B. Kinderarzt">
+    </label>
+
+    <div class="form-two">
+      <label>Datum *
+        <input name="date" type="date" required value="${esc(event.date||today())}">
+      </label>
+      <label>Uhrzeit
+        <input name="time" type="time" value="${esc(event.time||"")}">
+      </label>
+    </div>
+
+    <div class="form-two">
+      <label>Für wen?
+        <select name="person">${selectOptions(["Dominic","Sabrina","Malia","Familie"],event.person||"Familie")}</select>
+      </label>
+      <label>Kategorie
+        <select name="category">${selectOptions(["Familie","Malia","Geburtstag","Arzt","Kita","Freizeit","Sonstiges"],event.category||"Familie")}</select>
+      </label>
+    </div>
+
+    <div class="form-two">
+      <label>Wiederholung
+        <select name="recurrence">${selectOptions(["Nein","Wöchentlich","Monatlich","Jährlich"],recurrence)}</select>
+      </label>
+      <label>Erinnerung
+        <select name="reminder">${selectOptions(["Keine","Am selben Tag","1 Tag vorher","1 Woche vorher"],reminder)}</select>
+      </label>
+    </div>
+
+    <label>Ort
+      <input name="location" value="${esc(event.location||"")}" placeholder="Adresse oder Ort">
+    </label>
+
+    <label>Notiz
+      <textarea name="notes" placeholder="Hinweise zum Termin …">${esc(event.notes||"")}</textarea>
+    </label>
+
+    <button class="primary wide">${event.id?"Änderungen speichern":"Termin speichern"}</button>
+  `;
+}
+
+function openEventEditor(eventId=""){
+  const event=eventId?state.data.events.find(x=>x.id===eventId)||{}:{};
+  $("#quick").close();
+  $("#editorTitle").textContent=event.id?"Termin bearbeiten":"Termin hinzufügen";
+  $("#editorForm").innerHTML=eventFormHtml(event);
+  $("#editor").showModal();
+}
+
+async function deleteEvent(eventId){
+  const event=state.data.events.find(x=>x.id===eventId);
+  if(!event) return;
+
+  const series=event.recurrence&&event.recurrence!=="Nein";
+  const question=series
+    ? `Terminserie "${event.title}" wirklich komplett löschen?`
+    : `Termin "${event.title}" wirklich löschen?`;
+
+  if(!confirm(question)) return;
+
+  await remove("events",eventId);
+  toast(series?"Terminserie gelöscht":"Termin gelöscht");
 }
 
 $("#shopForm").onsubmit=e=>{
@@ -1108,6 +1381,12 @@ function sel(label,name,a){
 
 $$('[data-add]').forEach(b=>b.onclick=()=>{
   const t=b.dataset.add;
+
+  if(t==="event"){
+    openEventEditor();
+    return;
+  }
+
   $("#quick").close();
 
   const h={
@@ -1128,15 +1407,6 @@ $$('[data-add]').forEach(b=>b.onclick=()=>{
       sel("Priorität","priority",["Normal","Wichtig","Dringend"])+
       sel("Wiederholung","recurrence",["Nein","Täglich","Wöchentlich","Alle 2 Wochen","Monatlich"])+
       sel("Erinnerung","reminder",["Keine","Am Fälligkeitstag","1 Tag vorher","2 Tage vorher"]);
-  }
-  if(t==="event"){
-    x=
-      f("Termin","title","text",true)+
-      f("Datum","date","date",true)+
-      f("Uhrzeit","time","time")+
-      sel("Für wen?","person",["Dominic","Sabrina","Malia","Familie"])+
-      sel("Kategorie","category",["Familie","Malia","Geburtstag","Arzt","Kita","Freizeit","Sonstiges"])+
-      f("Ort","location");
   }
   if(t==="shopping")x=f("Artikel","title","text",true);
   if(t==="expense")x=f("Betrag","amount","number",true)+sel("Kategorie","category",["Lebensmittel","Drogerie","Freizeit","Auto","Kind","Wohnen","Sonstiges"])+f("Verwendungszweck optional","note");
@@ -1165,17 +1435,33 @@ $("#editorForm").onsubmit=e=>{
     createdAt:new Date().toISOString()
   });
 
-  if(t==="event")save("events",{
-    id:id("e"),
-    title:d.get("title"),
-    date:d.get("date"),
-    time:d.get("time"),
-    person:d.get("person"),
-    category:d.get("category"),
-    location:d.get("location"),
-    createdBy:state.user,
-    createdAt:new Date().toISOString()
-  });
+  if(t==="event"){
+    const editId=String(d.get("editId")||"");
+    const existing=editId?state.data.events.find(x=>x.id===editId):null;
+    const category=String(d.get("category")||"Familie");
+    let recurrence=String(d.get("recurrence")||"Nein");
+
+    // Geburtstage werden standardmäßig jährlich wiederholt.
+    if(category==="Geburtstag"&&recurrence==="Nein") recurrence="Jährlich";
+
+    save("events",{
+      ...(existing||{}),
+      id:existing?.id||id("e"),
+      title:String(d.get("title")||"").trim(),
+      date:d.get("date"),
+      time:d.get("time"),
+      person:d.get("person"),
+      category,
+      recurrence,
+      reminder:d.get("reminder"),
+      location:String(d.get("location")||"").trim(),
+      notes:String(d.get("notes")||"").trim(),
+      createdBy:existing?.createdBy||state.user,
+      createdAt:existing?.createdAt||new Date().toISOString(),
+      updatedBy:state.user,
+      updatedAt:new Date().toISOString()
+    });
+  }
 
   if(t==="shopping")save("shopping",{
     id:id("s"),
@@ -1216,5 +1502,5 @@ render();
 initFirebase();
 
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./sw.js?v=7").catch(()=>{});
+  navigator.serviceWorker.register("./sw.js?v=8").catch(()=>{});
 }
