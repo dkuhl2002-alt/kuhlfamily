@@ -1,5 +1,5 @@
-const C="kuhlfamily-v10";
-const A=["./","./index.html","./styles.css?v=10","./app.js?v=10","./firebase-config.js","./assets/family.jpg"];
+const C="kuhlfamily-v11";
+const A=["./","./index.html","./styles.css?v=11","./app.js?v=11","./firebase-config.js","./assets/family.jpg"];
 
 self.addEventListener("install",e=>{
   self.skipWaiting();
