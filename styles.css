@@ -1055,3 +1055,34 @@ dialog::backdrop{background:rgba(40,25,20,.38);backdrop-filter:blur(3px)}
     grid-template-columns:1fr;
   }
 }
+
+
+/* V11 – Dashboard direkt zur richtigen Seite */
+.dashboard-link{
+  width:100%;
+  border:0;
+  background:transparent;
+  text-align:left;
+  font:inherit;
+  color:inherit;
+  cursor:pointer;
+  padding-left:0;
+  padding-right:0;
+}
+.dashboard-link:hover{
+  background:#fbf5ef;
+}
+.dashboard-link:active{
+  transform:scale(.995);
+}
+.dashboard-link>div{
+  flex:1;
+  min-width:0;
+}
+.dashboard-arrow{
+  margin-left:auto;
+  color:var(--accent);
+  font-size:23px;
+  line-height:1;
+  font-weight:700;
+}
