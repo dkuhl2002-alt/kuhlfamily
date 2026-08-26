@@ -2,21 +2,38 @@ import {firebaseConfig,vapidKey} from "./firebase-config.js";
 
 const configured=firebaseConfig.apiKey&&!firebaseConfig.apiKey.includes("HIER_");
 let fb=null,db=null,auth=null;
+let firebaseReady=false;
 
-if(configured){
+async function initFirebase(){
+  if(!configured){
+    render();
+    return;
+  }
+
   try{
     const [a,u,f]=await Promise.all([
       import("https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js"),
       import("https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js"),
       import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js")
     ]);
-    const app=a.initializeApp(firebaseConfig);
-    auth=u.getAuth(app);
-    await u.signInAnonymously(auth);
-    db=f.getFirestore(app);
+
+    const firebaseApp=a.initializeApp(firebaseConfig);
+    auth=u.getAuth(firebaseApp);
+
+    // Wichtig: Die Oberfläche und Benutzerwahl warten NICHT auf Firebase.
+    // Firebase verbindet sich im Hintergrund.
+    await Promise.race([
+      u.signInAnonymously(auth),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("Firebase-Anmeldung Timeout")),8000))
+    ]);
+
+    db=f.getFirestore(firebaseApp);
     fb={f};
+    firebaseReady=true;
+    watch();
   }catch(e){
-    console.warn("Firebase konnte nicht gestartet werden.",e);
+    console.warn("Firebase konnte nicht gestartet werden. KuhlFamily läuft zunächst lokal weiter.",e);
+    render();
   }
 }
 
@@ -126,23 +143,33 @@ function store(){
 }
 
 async function save(key,item){
-  if(db){
-    await fb.f.setDoc(fb.f.doc(db,key,item.id),item,{merge:true});
-  }else{
-    const i=state.data[key].findIndex(x=>x.id===item.id);
-    i>=0?state.data[key][i]={...state.data[key][i],...item}:state.data[key].unshift(item);
-    store();
-    render();
+  if(db&&fb){
+    try{
+      await fb.f.setDoc(fb.f.doc(db,key,item.id),item,{merge:true});
+      return;
+    }catch(e){
+      console.warn("Firebase-Speichern fehlgeschlagen, lokale Sicherung wird verwendet.",e);
+    }
   }
+
+  const i=state.data[key].findIndex(x=>x.id===item.id);
+  i>=0?state.data[key][i]={...state.data[key][i],...item}:state.data[key].unshift(item);
+  store();
+  render();
 }
 async function remove(key,itemId){
-  if(db){
-    await fb.f.deleteDoc(fb.f.doc(db,key,itemId));
-  }else{
-    state.data[key]=state.data[key].filter(x=>x.id!==itemId);
-    store();
-    render();
+  if(db&&fb){
+    try{
+      await fb.f.deleteDoc(fb.f.doc(db,key,itemId));
+      return;
+    }catch(e){
+      console.warn("Firebase-Löschen fehlgeschlagen, lokale Sicherung wird verwendet.",e);
+    }
   }
+
+  state.data[key]=state.data[key].filter(x=>x.id!==itemId);
+  store();
+  render();
 }
 async function watch(){
   if(db){
@@ -1077,8 +1104,13 @@ $("#editorForm").onsubmit=e=>{
 
 ensureShoppingExtras();
 load();
-watch();
+render();
+
+// Firebase wird absichtlich erst NACH dem Aufbau der Oberfläche gestartet.
+// Damit funktionieren Dominic / Sabrina / Familie auch dann sofort,
+// wenn Firebase langsam ist oder kurzfristig nicht erreichbar ist.
+initFirebase();
 
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  navigator.serviceWorker.register("./sw.js?v=6").catch(()=>{});
 }
