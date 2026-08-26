@@ -7,3 +7,6 @@ Bereits enthalten: Benutzerwahl Dominic/Sabrina/Familie, warmes Familien-Design 
 Ohne Firebase läuft die App zunächst lokal als Demo. Nach Eintragen von `firebase-config.js` werden die Daten über Firestore geteilt.
 
 Siehe `ANLEITUNG.md`.
+
+## Firebase-Status
+Die Web-App-Konfiguration für das Projekt `kuhlfamily-80202` ist bereits eingetragen. Als Nächstes: Anonymous Authentication und Firestore aktivieren.
