@@ -357,35 +357,576 @@ async function deleteTask(taskId){
   toast("Aufgabe gelöscht");
 }
 
+let shoppingHistoryOpen=false;
+let scannerStream=null;
+let scannerLoop=null;
+let barcodeDraft=null;
+
+function ensureShoppingExtras(){
+  if($("#shoppingTools")) return;
+
+  $("#shopForm").insertAdjacentHTML("afterend",`
+    <div id="shoppingTools" class="shopping-tools">
+      <button id="scanBarcode" class="shop-tool">▦ <span>Barcode scannen</span></button>
+      <button id="addSavedProduct" class="shop-tool">＋ <span>Produkt speichern</span></button>
+      <button id="toggleShopHistory" class="shop-tool">🕘 <span>Verlauf</span></button>
+    </div>
+  `);
+
+  $("#shopList").insertAdjacentHTML("afterend",`
+    <div id="shopHistoryPanel" class="shop-history hidden">
+      <div class="section-head">
+        <div>
+          <span class="kicker">ZULETZT GEKAUFT</span>
+          <h3>Verlauf</h3>
+        </div>
+      </div>
+      <div id="shopHistory"></div>
+    </div>
+  `);
+
+  const sub=$("#shopping .sub");
+  sub.insertAdjacentHTML("afterend",`
+    <p class="product-hint">Gespeicherte Produkte werden nach euren Käufen sortiert. Ein Tipp reicht und sie stehen wieder auf der Liste.</p>
+  `);
+
+  document.body.insertAdjacentHTML("beforeend",`
+    <dialog id="barcodeDialog" class="scanner-dialog">
+      <div class="dialog-head">
+        <div>
+          <span class="kicker">EINKAUF</span>
+          <h3>Barcode scannen</h3>
+        </div>
+        <button class="close" id="closeBarcode">×</button>
+      </div>
+
+      <div class="scanner-box">
+        <video id="barcodeVideo" playsinline muted></video>
+        <div class="scanner-frame"></div>
+        <div id="scannerMessage" class="scanner-message">Kamera noch nicht gestartet.</div>
+      </div>
+
+      <button id="startBarcodeCamera" class="primary wide">📷 Kamera starten</button>
+
+      <form id="barcodeManualForm" class="barcode-manual">
+        <label>Barcode alternativ eingeben
+          <div class="barcode-input-row">
+            <input id="barcodeManualInput" inputmode="numeric" autocomplete="off" placeholder="z. B. 4008400404127">
+            <button class="pill" type="submit">Suchen</button>
+          </div>
+        </label>
+      </form>
+
+      <div id="barcodeResult"></div>
+    </dialog>
+
+    <dialog id="productDialog" class="product-dialog">
+      <div class="dialog-head">
+        <div>
+          <span class="kicker">PRODUKTKARTE</span>
+          <h3 id="productDialogTitle">Produkt speichern</h3>
+        </div>
+        <button class="close" id="closeProduct">×</button>
+      </div>
+
+      <form id="productForm">
+        <input type="hidden" name="id">
+
+        <div id="productImagePreview" class="product-image-preview">🛍️</div>
+
+        <label>Produktname *
+          <input name="name" required placeholder="z. B. Vollmilch 3,5 %">
+        </label>
+
+        <div class="form-two">
+          <label>Marke
+            <input name="brand" placeholder="z. B. ja!">
+          </label>
+          <label>Variante / Details
+            <input name="details" placeholder="z. B. 1 Liter">
+          </label>
+        </div>
+
+        <div class="form-two">
+          <label>Bevorzugter Laden
+            <select name="shop">
+              <option value="">Nicht festgelegt</option>
+              <option>dm</option>
+              <option>REWE</option>
+              <option>Aldi</option>
+              <option>Lidl</option>
+              <option>Edeka</option>
+              <option>Rossmann</option>
+              <option>Sonstiges</option>
+            </select>
+          </label>
+          <label>Preis optional
+            <input name="price" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0,00">
+          </label>
+        </div>
+
+        <label>Barcode
+          <input name="barcode" inputmode="numeric" autocomplete="off">
+        </label>
+
+        <label>Bild-URL optional
+          <input name="image" type="url" placeholder="https://...">
+        </label>
+
+        <button class="primary wide">Produkt speichern</button>
+      </form>
+    </dialog>
+  `);
+
+  $("#scanBarcode").onclick=()=>openBarcodeDialog();
+  $("#addSavedProduct").onclick=()=>openProductEditor();
+  $("#toggleShopHistory").onclick=()=>{
+    shoppingHistoryOpen=!shoppingHistoryOpen;
+    $("#shopHistoryPanel").classList.toggle("hidden",!shoppingHistoryOpen);
+    $("#toggleShopHistory").classList.toggle("active",shoppingHistoryOpen);
+  };
+
+  $("#closeBarcode").onclick=()=>$("#barcodeDialog").close();
+  $("#closeProduct").onclick=()=>$("#productDialog").close();
+  $("#barcodeDialog").addEventListener("close",stopBarcodeCamera);
+  $("#startBarcodeCamera").onclick=startBarcodeCamera;
+  $("#barcodeManualForm").onsubmit=e=>{
+    e.preventDefault();
+    const code=$("#barcodeManualInput").value.trim();
+    if(code) handleBarcode(code);
+  };
+
+  $("#productForm").addEventListener("input",e=>{
+    if(e.target.name==="image") updateProductImagePreview(e.target.value);
+  });
+
+  $("#productForm").onsubmit=saveProductFromForm;
+}
+
+function formatMoney(value){
+  const n=Number(value);
+  return Number.isFinite(n)&&n>0
+    ? new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR"}).format(n)
+    : "";
+}
+
+function productImage(p){
+  if(p.image){
+    return `<img src="${esc(p.image)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='🛍️'">`;
+  }
+  return `<span>🛍️</span>`;
+}
+
+function productMeta(p){
+  const parts=[];
+  if(p.shop) parts.push(p.shop);
+  if(Number(p.price)>0) parts.push(formatMoney(p.price));
+  if(p.barcode) parts.push("EAN "+p.barcode);
+  return parts.join(" · ");
+}
+
 function renderShopping(){
-  $("#shopList").innerHTML=state.data.shopping.map(x=>`
-    <div class="row">
-      <button class="check ${x.done?'done':''}" data-shop="${x.id}">${x.done?'✓':''}</button>
+  const open=[...state.data.shopping]
+    .filter(x=>!x.done)
+    .sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+
+  const history=[...state.data.shopping]
+    .filter(x=>x.done)
+    .sort((a,b)=>String(b.doneAt||"").localeCompare(String(a.doneAt||"")))
+    .slice(0,30);
+
+  $("#shopList").innerHTML=open.map(x=>`
+    <div class="row shopping-row">
+      <button class="check" data-shop-toggle="${x.id}" aria-label="Als gekauft markieren"></button>
       <div class="grow">
         <b>${esc(x.title)}</b>
-        ${x.doneBy?`<small>Erledigt von ${esc(x.doneBy)}</small>`:''}
+        ${x.brand?`<small>${esc(x.brand)}${x.details?" · "+esc(x.details):""}</small>`:""}
+        ${x.shop?`<span class="shop-chip">${esc(x.shop)}</span>`:""}
       </div>
-    </div>`).join("");
+      <button class="shop-delete" data-shop-delete="${x.id}" title="Von Liste löschen">×</button>
+    </div>
+  `).join("")||`<div class="empty-state">🛒 Die Einkaufsliste ist leer.</div>`;
 
-  $$('[data-shop]').forEach(b=>b.onclick=()=>{
-    const x=state.data.shopping.find(t=>t.id===b.dataset.shop);
-    save("shopping",{...x,done:!x.done,doneBy:!x.done?state.user:null,doneAt:!x.done?new Date().toISOString():null});
+  $("#shopHistory").innerHTML=history.map(x=>{
+    const when=x.doneAt
+      ? new Intl.DateTimeFormat("de-DE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date(x.doneAt))
+      : "";
+    return `
+      <div class="history-row">
+        <div class="history-icon">✓</div>
+        <div class="grow">
+          <b>${esc(x.title)}</b>
+          <small>${esc(x.doneBy||"")} ${when?"· "+esc(when):""}</small>
+        </div>
+        <button class="pill" data-history-repeat="${x.id}">Nochmal</button>
+      </div>`;
+  }).join("")||`<div class="empty-state small-empty">Noch keine erledigten Einkäufe.</div>`;
+
+  $$('[data-shop-toggle]').forEach(b=>b.onclick=()=>toggleShopping(b.dataset.shopToggle));
+  $$('[data-shop-delete]').forEach(b=>b.onclick=()=>deleteShoppingItem(b.dataset.shopDelete));
+  $$('[data-history-repeat]').forEach(b=>b.onclick=()=>repeatShoppingItem(b.dataset.historyRepeat));
+}
+
+async function toggleShopping(itemId){
+  const x=state.data.shopping.find(t=>t.id===itemId);
+  if(!x) return;
+
+  if(x.done){
+    await save("shopping",{...x,done:false,doneBy:null,doneAt:null});
+    toast("Wieder auf der Liste");
+    return;
+  }
+
+  const doneAt=new Date().toISOString();
+  await save("shopping",{...x,done:true,doneBy:state.user,doneAt});
+
+  if(x.productId){
+    const p=state.data.products.find(p=>p.id===x.productId);
+    if(p){
+      await save("products",{
+        ...p,
+        buyCount:Number(p.buyCount||0)+1,
+        lastBoughtAt:doneAt
+      });
+    }
+  }
+
+  toast("Gekauft · "+state.user);
+}
+
+async function deleteShoppingItem(itemId){
+  const x=state.data.shopping.find(t=>t.id===itemId);
+  if(!x) return;
+  if(!confirm('"'+x.title+'" von der Einkaufsliste löschen?')) return;
+  await remove("shopping",itemId);
+  toast("Von der Liste gelöscht");
+}
+
+async function repeatShoppingItem(itemId){
+  const x=state.data.shopping.find(t=>t.id===itemId);
+  if(!x) return;
+
+  const duplicate=state.data.shopping.some(s=>
+    !s.done&&(
+      (x.productId&&s.productId===x.productId)||
+      (!x.productId&&String(s.title).toLowerCase()===String(x.title).toLowerCase())
+    )
+  );
+
+  if(duplicate){
+    toast("Steht schon auf der Liste");
+    return;
+  }
+
+  await save("shopping",{
+    id:id("s"),
+    title:x.title,
+    brand:x.brand||"",
+    details:x.details||"",
+    shop:x.shop||"",
+    productId:x.productId||"",
+    barcode:x.barcode||"",
+    done:false,
+    addedBy:state.user,
+    createdAt:new Date().toISOString()
   });
+
+  toast(x.title+" wieder hinzugefügt");
 }
 
 function renderProducts(){
-  $("#products").innerHTML=state.data.products.map(x=>`
-    <button class="product" data-product="${x.id}">
-      <span>${x.shop==='dm'?'🧴':'🛍️'}</span>
-      <b>${esc(x.name)}</b>
-      <small>${esc(x.shop)}</small>
-    </button>`).join("");
+  const products=[...state.data.products]
+    .sort((a,b)=>{
+      const c=Number(b.buyCount||0)-Number(a.buyCount||0);
+      if(c) return c;
+      const l=String(b.lastBoughtAt||"").localeCompare(String(a.lastBoughtAt||""));
+      if(l) return l;
+      return String(a.name||"").localeCompare(String(b.name||""),"de");
+    });
 
-  $$('[data-product]').forEach(b=>b.onclick=()=>{
-    const p=state.data.products.find(x=>x.id===b.dataset.product);
-    save("shopping",{id:id("s"),title:p.name,done:false,addedBy:state.user,createdAt:new Date().toISOString()});
-    toast(p.name+" hinzugefügt");
+  $("#products").innerHTML=products.map(p=>`
+    <article class="product-card">
+      <div class="product-card-image">${productImage(p)}</div>
+      <div class="product-card-body">
+        ${p.brand?`<small class="product-brand">${esc(p.brand)}</small>`:""}
+        <b>${esc(p.name||"Produkt")}</b>
+        ${p.details?`<small class="product-details">${esc(p.details)}</small>`:""}
+        ${productMeta(p)?`<small class="product-meta">${esc(productMeta(p))}</small>`:""}
+        ${Number(p.buyCount||0)>0?`<span class="buy-count">Schon ${Number(p.buyCount)}× gekauft</span>`:""}
+      </div>
+      <div class="product-card-actions">
+        <button class="primary" data-product-add="${p.id}">＋ Liste</button>
+        <button class="pill" data-product-edit="${p.id}">Bearbeiten</button>
+      </div>
+    </article>
+  `).join("")||`
+    <div class="empty-state product-empty">
+      Noch keine Produkte gespeichert.<br>
+      <small>Barcode scannen oder „Produkt speichern“ wählen.</small>
+    </div>`;
+
+  $$('[data-product-add]').forEach(b=>b.onclick=()=>{
+    const p=state.data.products.find(x=>x.id===b.dataset.productAdd);
+    if(p)addProductToShopping(p);
   });
+
+  $$('[data-product-edit]').forEach(b=>b.onclick=()=>{
+    const p=state.data.products.find(x=>x.id===b.dataset.productEdit);
+    if(p)openProductEditor(p);
+  });
+}
+
+async function addProductToShopping(p){
+  const duplicate=state.data.shopping.some(s=>
+    !s.done&&(
+      (p.id&&s.productId===p.id)||
+      String(s.title||"").toLowerCase()===String(p.name||"").toLowerCase()
+    )
+  );
+
+  if(duplicate){
+    toast(p.name+" steht schon auf der Liste");
+    return;
+  }
+
+  await save("shopping",{
+    id:id("s"),
+    title:p.name||"Produkt",
+    brand:p.brand||"",
+    details:p.details||"",
+    shop:p.shop||"",
+    productId:p.id||"",
+    barcode:p.barcode||"",
+    done:false,
+    addedBy:state.user,
+    createdAt:new Date().toISOString()
+  });
+
+  toast(p.name+" hinzugefügt");
+}
+
+function openProductEditor(product={}){
+  ensureShoppingExtras();
+  const form=$("#productForm");
+
+  form.elements.id.value=product.id||"";
+  form.elements.name.value=product.name||"";
+  form.elements.brand.value=product.brand||"";
+  form.elements.details.value=product.details||"";
+  form.elements.shop.value=product.shop||"";
+  form.elements.price.value=Number(product.price)>0?Number(product.price):"";
+  form.elements.barcode.value=product.barcode||"";
+  form.elements.image.value=product.image||"";
+
+  $("#productDialogTitle").textContent=product.id?"Produkt bearbeiten":"Produkt speichern";
+  updateProductImagePreview(product.image||"");
+  $("#productDialog").showModal();
+}
+
+function updateProductImagePreview(url){
+  const box=$("#productImagePreview");
+  if(url){
+    box.innerHTML=`<img src="${esc(url)}" alt="Produktbild" onerror="this.parentElement.textContent='🛍️'">`;
+  }else{
+    box.textContent="🛍️";
+  }
+}
+
+async function saveProductFromForm(e){
+  e.preventDefault();
+  const f=new FormData(e.target);
+  const barcode=String(f.get("barcode")||"").trim();
+  const existingId=String(f.get("id")||"").trim();
+  const byBarcode=barcode?state.data.products.find(p=>String(p.barcode||"")===barcode):null;
+  const existing=state.data.products.find(p=>p.id===existingId)||byBarcode;
+
+  const product={
+    id:existing?.id||existingId||(barcode?"prod-"+barcode:id("p")),
+    name:String(f.get("name")||"").trim(),
+    brand:String(f.get("brand")||"").trim(),
+    details:String(f.get("details")||"").trim(),
+    shop:String(f.get("shop")||"").trim(),
+    price:Number(f.get("price")||0),
+    barcode,
+    image:String(f.get("image")||"").trim(),
+    buyCount:Number(existing?.buyCount||0),
+    lastBoughtAt:existing?.lastBoughtAt||"",
+    updatedBy:state.user,
+    updatedAt:new Date().toISOString()
+  };
+
+  if(!product.name) return;
+
+  await save("products",product);
+  $("#productDialog").close();
+  toast("Produkt gespeichert");
+
+  if($("#barcodeDialog").open){
+    barcodeDraft=product;
+    renderBarcodeResult(product,true);
+  }
+}
+
+function openBarcodeDialog(){
+  ensureShoppingExtras();
+  barcodeDraft=null;
+  $("#barcodeResult").innerHTML="";
+  $("#barcodeManualInput").value="";
+  $("#scannerMessage").textContent="Kamera noch nicht gestartet.";
+  $("#barcodeDialog").showModal();
+}
+
+async function startBarcodeCamera(){
+  stopBarcodeCamera();
+
+  if(!navigator.mediaDevices?.getUserMedia){
+    $("#scannerMessage").textContent="Kamera ist auf diesem Gerät nicht verfügbar. Barcode bitte unten eingeben.";
+    return;
+  }
+
+  if(!("BarcodeDetector" in window)){
+    $("#scannerMessage").textContent="Der automatische Barcode-Scanner wird von diesem Browser nicht unterstützt. Barcode bitte unten eingeben.";
+    return;
+  }
+
+  try{
+    const formats=["ean_13","ean_8","upc_a","upc_e","code_128"];
+    const detector=new BarcodeDetector({formats});
+
+    scannerStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},
+      audio:false
+    });
+
+    const video=$("#barcodeVideo");
+    video.srcObject=scannerStream;
+    await video.play();
+    $("#scannerMessage").textContent="Barcode in den Rahmen halten …";
+
+    let busy=false;
+
+    const scan=async()=>{
+      if(!scannerStream||!$("#barcodeDialog").open) return;
+      if(!busy){
+        busy=true;
+        try{
+          const codes=await detector.detect(video);
+          if(codes?.length){
+            const code=String(codes[0].rawValue||"").trim();
+            if(code){
+              $("#barcodeManualInput").value=code;
+              stopBarcodeCamera();
+              await handleBarcode(code);
+              return;
+            }
+          }
+        }catch{}
+        busy=false;
+      }
+      scannerLoop=requestAnimationFrame(scan);
+    };
+
+    scan();
+  }catch(e){
+    console.warn(e);
+    $("#scannerMessage").textContent="Kamera konnte nicht gestartet werden. Barcode bitte unten eingeben.";
+  }
+}
+
+function stopBarcodeCamera(){
+  if(scannerLoop){
+    cancelAnimationFrame(scannerLoop);
+    scannerLoop=null;
+  }
+  if(scannerStream){
+    scannerStream.getTracks().forEach(t=>t.stop());
+    scannerStream=null;
+  }
+  const video=$("#barcodeVideo");
+  if(video) video.srcObject=null;
+}
+
+async function handleBarcode(code){
+  code=String(code||"").trim();
+  if(!code) return;
+
+  stopBarcodeCamera();
+  $("#scannerMessage").textContent="Barcode erkannt: "+code;
+  $("#barcodeResult").innerHTML=`<div class="barcode-loading">🔎 Produkt wird gesucht …</div>`;
+
+  const known=state.data.products.find(p=>String(p.barcode||"")===code);
+  if(known){
+    barcodeDraft=known;
+    renderBarcodeResult(known,true);
+    return;
+  }
+
+  let draft={barcode:code,name:"",brand:"",details:"",shop:"",price:0,image:"",buyCount:0};
+
+  try{
+    const fields="code,product_name,brands,quantity,image_front_url";
+    const response=await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}?fields=${fields}`);
+    if(response.ok){
+      const data=await response.json();
+      if(data?.status===1&&data.product){
+        draft={
+          ...draft,
+          name:data.product.product_name||"",
+          brand:data.product.brands||"",
+          details:data.product.quantity||"",
+          image:data.product.image_front_url||""
+        };
+      }
+    }
+  }catch(e){
+    console.warn("Produktsuche nicht erreichbar.",e);
+  }
+
+  barcodeDraft=draft;
+  renderBarcodeResult(draft,false);
+}
+
+function renderBarcodeResult(p,saved){
+  const hasName=!!String(p.name||"").trim();
+
+  $("#barcodeResult").innerHTML=`
+    <div class="barcode-product-card">
+      <div class="barcode-product-image">${productImage(p)}</div>
+      <div class="grow">
+        <small>${saved?"Gespeichertes Produkt":hasName?"Produkt gefunden":"Noch unbekanntes Produkt"}</small>
+        <b>${esc(p.name||"Produktdaten ergänzen")}</b>
+        ${p.brand?`<span>${esc(p.brand)}</span>`:""}
+        ${p.details?`<span>${esc(p.details)}</span>`:""}
+        <span>EAN ${esc(p.barcode||"")}</span>
+      </div>
+    </div>
+    <div class="barcode-actions">
+      <button id="barcodeEditProduct" class="pill">${saved?"Bearbeiten":"Produktdaten ergänzen"}</button>
+      ${hasName?`<button id="barcodeAddList" class="primary">＋ Auf Einkaufsliste</button>`:""}
+    </div>
+  `;
+
+  $("#barcodeEditProduct").onclick=()=>openProductEditor(p);
+
+  if($("#barcodeAddList")){
+    $("#barcodeAddList").onclick=async()=>{
+      let product=p;
+
+      if(!product.id){
+        product={
+          ...product,
+          id:product.barcode?"prod-"+product.barcode:id("p"),
+          buyCount:Number(product.buyCount||0),
+          updatedBy:state.user,
+          updatedAt:new Date().toISOString()
+        };
+        await save("products",product);
+      }
+
+      await addProductToShopping(product);
+      $("#barcodeDialog").close();
+    };
+  }
 }
 
 function renderEvents(){
@@ -525,6 +1066,7 @@ $("#editorForm").onsubmit=e=>{
   toast("Gespeichert");
 };
 
+ensureShoppingExtras();
 load();
 watch();
 
